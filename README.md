@@ -1,34 +1,25 @@
 # Portfolio Tracker
 
-A full-stack stock portfolio tracker with a strategy backtesting engine.
+A client-side stock portfolio tracker with a strategy backtesting engine. No backend required — runs entirely in the browser.
+
+**Live:** [jasveerd.github.io/portfolio-tracker](https://jasveerd.github.io/portfolio-tracker/)
 
 ## Features
 
-- **Portfolio Management** — CRUD for holdings with live prices, P&L tracking, and allocation charts
-- **Market Data** — Historical OHLCV data via yfinance with SQLite caching
+- **Portfolio Management** — Add/remove holdings with live prices, P&L tracking, and allocation donut chart
+- **Market Data** — Real-time prices and historical OHLCV data from Yahoo Finance
 - **Backtesting Engine** — Test 5 strategies (SMA Crossover, RSI, Bollinger Bands, MACD, Buy & Hold) with configurable parameters, equity curves, drawdown charts, and trade logs
+- **Dark/Light Mode** — Toggle with one click
 
 ## Tech Stack
 
-- **Frontend:** React + TypeScript + Vite, TailwindCSS, Recharts
-- **Backend:** Python FastAPI, SQLAlchemy, SQLite
-- **Market Data:** yfinance
+- React + TypeScript + Vite
+- TailwindCSS + Recharts
+- Yahoo Finance API (via CORS proxy)
+- localStorage for holdings persistence
+- GitHub Pages for hosting
 
-## Setup
-
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
-The API runs at `http://localhost:8000`. The SQLite database (`portfolio.db`) is created automatically.
-
-### Frontend
+## Local Development
 
 ```bash
 cd frontend
@@ -36,19 +27,7 @@ npm install
 npm run dev
 ```
 
-The app runs at `http://localhost:5173`. API calls are proxied to the backend via Vite config.
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/holdings` | List all holdings |
-| POST | `/api/holdings` | Add a holding |
-| PUT | `/api/holdings/{id}` | Update a holding |
-| DELETE | `/api/holdings/{id}` | Remove a holding |
-| GET | `/api/portfolio/summary` | Portfolio value, P&L, allocation |
-| GET | `/api/market/{ticker}/history?period=1y` | Historical price data |
-| POST | `/api/backtest` | Run a backtest |
+The app runs at `http://localhost:5173`.
 
 ## Backtest Strategies
 
