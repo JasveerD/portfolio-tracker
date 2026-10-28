@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
-import { api } from "../api/client";
+import { useCallback, useEffect, useState } from "react";
 import HoldingCard from "../components/HoldingCard";
+import { fetchCurrentPrice } from "../services/marketData";
+import {
+  addHolding,
+  deleteHolding,
+  getHoldings,
+} from "../services/storage";
 import type { Holding, HoldingCreate } from "../types";
 
 export default function Portfolio() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<HoldingCreate>({
     ticker: "",
@@ -14,39 +19,45 @@ export default function Portfolio() {
     buy_date: new Date().toISOString().slice(0, 10),
   });
 
-  const load = () => {
-    api
-      .getHoldings()
-      .then(setHoldings)
-      .catch((e) => setError(e.message));
-  };
+  const load = useCallback(async () => {
+    setLoading(true);
+    const raw = getHoldings();
+    const enriched = await Promise.all(
+      raw.map(async (h) => {
+        const price = await fetchCurrentPrice(h.ticker);
+        return {
+          ...h,
+          current_price: price,
+          gain_loss_pct: price
+            ? Math.round((price / h.buy_price - 1) * 10000) / 100
+            : null,
+        };
+      })
+    );
+    setHoldings(enriched);
+    setLoading(false);
+  }, []);
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await api.createHolding(form);
-      setForm({
-        ticker: "",
-        shares: 0,
-        buy_price: 0,
-        buy_date: new Date().toISOString().slice(0, 10),
-      });
-      setShowForm(false);
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add holding");
-    }
+    addHolding(form);
+    setForm({
+      ticker: "",
+      shares: 0,
+      buy_price: 0,
+      buy_date: new Date().toISOString().slice(0, 10),
+    });
+    setShowForm(false);
+    load();
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      await api.deleteHolding(id);
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete");
-    }
+  const handleDelete = (id: number) => {
+    deleteHolding(id);
+    load();
   };
 
   return (
@@ -60,8 +71,6 @@ export default function Portfolio() {
           {showForm ? "Cancel" : "+ Add Holding"}
         </button>
       </div>
-
-      {error && <p className="text-red-500">{error}</p>}
 
       {showForm && (
         <form
@@ -133,7 +142,9 @@ export default function Portfolio() {
         </form>
       )}
 
-      {holdings.length === 0 && !showForm ? (
+      {loading ? (
+        <p className="text-gray-500">Loading prices...</p>
+      ) : holdings.length === 0 && !showForm ? (
         <p className="text-gray-500">
           No holdings yet. Click &quot;+ Add Holding&quot; to get started.
         </p>

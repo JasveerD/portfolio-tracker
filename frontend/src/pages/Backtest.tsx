@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { api } from "../api/client";
 import DrawdownChart from "../components/DrawdownChart";
 import EquityCurve from "../components/EquityCurve";
 import MetricsPanel from "../components/MetricsPanel";
 import StrategyForm from "../components/StrategyForm";
 import TradeLog from "../components/TradeLog";
+import { runBacktest } from "../services/backtestEngine";
+import { fetchPriceHistory } from "../services/marketData";
 import type { BacktestRequest, BacktestResult } from "../types";
 
 export default function Backtest() {
@@ -17,7 +18,22 @@ export default function Backtest() {
     setError("");
     setResult(null);
     try {
-      const data = await api.runBacktest(req);
+      const prices = await fetchPriceHistory(
+        req.ticker,
+        req.start_date,
+        req.end_date
+      );
+      if (prices.length < 2) {
+        throw new Error(
+          `Not enough price data for ${req.ticker} in the given date range`
+        );
+      }
+      const data = runBacktest(
+        prices,
+        req.strategy,
+        req.initial_capital,
+        req.params
+      );
       setResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Backtest failed");
