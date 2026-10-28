@@ -87,8 +87,10 @@ def fetch_and_cache(
 def get_current_price(ticker: str) -> float | None:
     try:
         t = yf.Ticker(ticker.upper())
-        info = t.fast_info
-        return float(info.last_price)
+        hist = t.history(period="1d")
+        if hist.empty:
+            return None
+        return float(hist["Close"].iloc[-1])
     except Exception:
         return None
 
