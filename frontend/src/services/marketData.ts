@@ -1,7 +1,10 @@
 import type { PricePoint } from "../types";
 
-const PROXY = "https://corsproxy.io/?url=";
 const YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/";
+const PROXY_FALLBACKS = [
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
 
 interface YahooChartResponse {
   chart: {
@@ -21,19 +24,28 @@ interface YahooChartResponse {
   };
 }
 
-export async function fetchPriceHistory(
-  ticker: string,
-  period1: string,
-  period2: string
-): Promise<PricePoint[]> {
-  const p1 = Math.floor(new Date(period1).getTime() / 1000);
-  const p2 = Math.floor(new Date(period2).getTime() / 1000);
-  const url = `${YAHOO_CHART}${ticker.toUpperCase()}?period1=${p1}&period2=${p2}&interval=1d`;
+async function fetchWithFallback(url: string): Promise<Response> {
+  // Try direct first (Yahoo Finance chart API supports CORS)
+  try {
+    const res = await fetch(url);
+    if (res.ok) return res;
+  } catch {
+    // CORS or network error, try proxies
+  }
 
-  const res = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-  if (!res.ok) throw new Error(`Failed to fetch data for ${ticker}`);
+  for (const makeProxy of PROXY_FALLBACKS) {
+    try {
+      const res = await fetch(makeProxy(url));
+      if (res.ok) return res;
+    } catch {
+      continue;
+    }
+  }
 
-  const data: YahooChartResponse = await res.json();
+  throw new Error("All fetch attempts failed");
+}
+
+function parseYahooResponse(data: YahooChartResponse, ticker: string): PricePoint[] {
   if (data.chart.error) throw new Error(data.chart.error.description);
   if (!data.chart.result?.length) throw new Error(`No data for ${ticker}`);
 
@@ -56,6 +68,20 @@ export async function fetchPriceHistory(
   return points;
 }
 
+export async function fetchPriceHistory(
+  ticker: string,
+  period1: string,
+  period2: string
+): Promise<PricePoint[]> {
+  const p1 = Math.floor(new Date(period1).getTime() / 1000);
+  const p2 = Math.floor(new Date(period2).getTime() / 1000);
+  const url = `${YAHOO_CHART}${ticker.toUpperCase()}?period1=${p1}&period2=${p2}&interval=1d`;
+
+  const res = await fetchWithFallback(url);
+  const data: YahooChartResponse = await res.json();
+  return parseYahooResponse(data, ticker);
+}
+
 export async function fetchCurrentPrice(
   ticker: string
 ): Promise<number | null> {
@@ -63,9 +89,8 @@ export async function fetchCurrentPrice(
     const now = Math.floor(Date.now() / 1000);
     const fiveDaysAgo = now - 5 * 86400;
     const url = `${YAHOO_CHART}${ticker.toUpperCase()}?period1=${fiveDaysAgo}&period2=${now}&interval=1d`;
-    const res = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-    if (!res.ok) return null;
 
+    const res = await fetchWithFallback(url);
     const data: YahooChartResponse = await res.json();
     if (!data.chart.result?.length) return null;
 
