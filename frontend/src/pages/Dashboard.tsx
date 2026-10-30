@@ -53,6 +53,15 @@ export default function Dashboard() {
 
   if (loading) return <p className="text-gray-500 p-4">Loading...</p>;
   if (!summary) return <p className="text-gray-500 p-4">No data</p>;
+  if (summary.allocations.length === 0)
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">Dashboard</h2>
+        <p className="text-gray-500 dark:text-gray-400">
+          No holdings yet. Add some in the Portfolio tab to see your dashboard.
+        </p>
+      </div>
+    );
 
   const pnlColor = summary.total_pnl >= 0 ? "text-green-500" : "text-red-500";
 

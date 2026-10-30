@@ -1,4 +1,5 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useDark } from "../hooks/useDark";
 
 const COLORS = [
   "#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6",
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function AllocationChart({ data }: Props) {
+  const dark = useDark();
+
   if (data.length === 0) return null;
 
   return (
@@ -34,10 +37,13 @@ export default function AllocationChart({ data }: Props) {
           <Tooltip
             formatter={(value: number) => `$${value.toFixed(2)}`}
             contentStyle={{
-              backgroundColor: "var(--tooltip-bg, #fff)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: dark ? "#1f2937" : "#fff",
+              border: `1px solid ${dark ? "#374151" : "#e5e7eb"}`,
               borderRadius: "8px",
+              color: dark ? "#e5e7eb" : "#1f2937",
             }}
+            labelStyle={{ color: dark ? "#d1d5db" : "#374151" }}
+            itemStyle={{ color: dark ? "#e5e7eb" : "#1f2937" }}
           />
         </PieChart>
       </ResponsiveContainer>
