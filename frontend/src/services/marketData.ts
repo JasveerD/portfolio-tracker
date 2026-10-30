@@ -1,7 +1,22 @@
 import type { PricePoint } from "../types";
 
+const TWELVE_DATA = "https://api.twelvedata.com";
+const TWELVE_KEY = "demo";
 const YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/";
 const ALLORIGINS = "https://api.allorigins.win/get?url=";
+
+interface TwelveDataResponse {
+  status: string;
+  values?: {
+    datetime: string;
+    open: string;
+    high: string;
+    low: string;
+    close: string;
+    volume: string;
+  }[];
+  message?: string;
+}
 
 interface YahooChartResponse {
   chart: {
@@ -21,18 +36,55 @@ interface YahooChartResponse {
   };
 }
 
-async function fetchYahoo(url: string): Promise<YahooChartResponse> {
-  const proxyUrl = `${ALLORIGINS}${encodeURIComponent(url)}`;
-  const res = await fetch(proxyUrl);
-  if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
+function parseTwelveData(data: TwelveDataResponse, ticker: string): PricePoint[] {
+  if (data.status !== "ok" || !data.values?.length)
+    throw new Error(data.message || `No data for ${ticker}`);
 
+  return data.values
+    .map((v) => ({
+      date: v.datetime,
+      open: parseFloat(v.open),
+      high: parseFloat(v.high),
+      low: parseFloat(v.low),
+      close: parseFloat(v.close),
+      volume: parseInt(v.volume, 10),
+    }))
+    .reverse();
+}
+
+async function fetchTwelveData(
+  ticker: string,
+  startDate: string,
+  endDate: string
+): Promise<PricePoint[]> {
+  const url = `${TWELVE_DATA}/time_series?symbol=${ticker.toUpperCase()}&interval=1day&start_date=${startDate}&end_date=${endDate}&apikey=${TWELVE_KEY}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Twelve Data returned ${res.status}`);
+  const data: TwelveDataResponse = await res.json();
+  return parseTwelveData(data, ticker);
+}
+
+async function fetchTwelveDataRecent(
+  ticker: string,
+  count: number
+): Promise<PricePoint[]> {
+  const url = `${TWELVE_DATA}/time_series?symbol=${ticker.toUpperCase()}&interval=1day&outputsize=${count}&apikey=${TWELVE_KEY}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Twelve Data returned ${res.status}`);
+  const data: TwelveDataResponse = await res.json();
+  return parseTwelveData(data, ticker);
+}
+
+async function fetchYahooViaProxy(url: string): Promise<YahooChartResponse> {
+  const proxyUrl = `${ALLORIGINS}${encodeURIComponent(url)}`;
+  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
   const wrapper = await res.json();
   if (!wrapper.contents) throw new Error("Empty response from proxy");
-
   return JSON.parse(wrapper.contents);
 }
 
-function parseResponse(data: YahooChartResponse, ticker: string): PricePoint[] {
+function parseYahooResponse(data: YahooChartResponse, ticker: string): PricePoint[] {
   if (data.chart.error) throw new Error(data.chart.error.description);
   if (!data.chart.result?.length) throw new Error(`No data for ${ticker}`);
 
@@ -60,25 +112,35 @@ export async function fetchPriceHistory(
   period1: string,
   period2: string
 ): Promise<PricePoint[]> {
+  try {
+    return await fetchTwelveData(ticker, period1, period2);
+  } catch {
+    // Fallback: Yahoo via allorigins proxy
+  }
+
   const p1 = Math.floor(new Date(period1).getTime() / 1000);
   const p2 = Math.floor(new Date(period2).getTime() / 1000);
   const url = `${YAHOO_CHART}${ticker.toUpperCase()}?period1=${p1}&period2=${p2}&interval=1d`;
-
-  const data = await fetchYahoo(url);
-  return parseResponse(data, ticker);
+  const data = await fetchYahooViaProxy(url);
+  return parseYahooResponse(data, ticker);
 }
 
 export async function fetchCurrentPrice(
   ticker: string
 ): Promise<number | null> {
   try {
+    const points = await fetchTwelveDataRecent(ticker, 5);
+    if (points.length > 0) return points[points.length - 1].close;
+  } catch {
+    // Fallback below
+  }
+
+  try {
     const now = Math.floor(Date.now() / 1000);
     const fiveDaysAgo = now - 5 * 86400;
     const url = `${YAHOO_CHART}${ticker.toUpperCase()}?period1=${fiveDaysAgo}&period2=${now}&interval=1d`;
-
-    const data = await fetchYahoo(url);
+    const data = await fetchYahooViaProxy(url);
     if (!data.chart.result?.length) return null;
-
     const quote = data.chart.result[0].indicators.quote[0];
     const closes = quote.close.filter((c) => c != null);
     return closes.length > 0 ? closes[closes.length - 1] : null;
