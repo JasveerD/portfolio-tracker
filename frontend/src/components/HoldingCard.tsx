@@ -9,36 +9,38 @@ export default function HoldingCard({ holding, onDelete }: Props) {
   const isPositive = (holding.gain_loss_pct ?? 0) >= 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 flex flex-col gap-2">
+    <div className="bg-t-panel border border-t-border rounded p-4 flex flex-col gap-2">
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="text-lg font-bold">{holding.ticker}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <h3 className="text-base font-bold text-t-accent">{holding.ticker}</h3>
+          <p className="text-xs text-t-muted">
             {holding.shares} shares @ ${holding.buy_price.toFixed(2)}
           </p>
         </div>
         <button
           onClick={() => onDelete(holding.id)}
-          className="text-red-400 hover:text-red-600 text-sm"
+          className="text-t-red hover:text-red-400 text-xs"
         >
-          Remove
+          DEL
         </button>
       </div>
-      <div className="flex justify-between items-end mt-2">
+      <div className="flex justify-between items-end mt-1">
         <div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Current Price
+          <p className="text-[10px] text-t-muted tracking-wider uppercase">
+            Current
           </p>
-          <p className="text-xl font-semibold">
+          <p className="text-lg font-semibold">
             {holding.current_price
               ? `$${holding.current_price.toFixed(2)}`
               : "—"}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Gain/Loss</p>
+          <p className="text-[10px] text-t-muted tracking-wider uppercase">
+            P&L
+          </p>
           <p
-            className={`text-lg font-bold ${isPositive ? "text-green-500" : "text-red-500"}`}
+            className={`text-base font-bold ${isPositive ? "text-t-green" : "text-t-red"}`}
           >
             {holding.gain_loss_pct !== null
               ? `${isPositive ? "+" : ""}${holding.gain_loss_pct.toFixed(2)}%`
@@ -46,8 +48,8 @@ export default function HoldingCard({ holding, onDelete }: Props) {
           </p>
         </div>
       </div>
-      <p className="text-xs text-gray-400 mt-1">
-        Bought {holding.buy_date}
+      <p className="text-[10px] text-t-muted mt-1">
+        BOUGHT {holding.buy_date}
       </p>
     </div>
   );

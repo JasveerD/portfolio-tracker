@@ -51,55 +51,65 @@ export default function Dashboard() {
     load();
   }, []);
 
-  if (loading) return <p className="text-gray-500 p-4">Loading...</p>;
-  if (!summary) return <p className="text-gray-500 p-4">No data</p>;
+  if (loading)
+    return <p className="text-t-muted p-4 text-sm">Loading...</p>;
+  if (!summary) return <p className="text-t-muted p-4 text-sm">No data</p>;
   if (summary.allocations.length === 0)
     return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold">Dashboard</h2>
-        <p className="text-gray-500 dark:text-gray-400">
-          No holdings yet. Add some in the Portfolio tab to see your dashboard.
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
+          Dashboard
+        </h2>
+        <p className="text-t-muted text-sm">
+          No holdings yet. Add some in the PORT tab to see your dashboard.
         </p>
       </div>
     );
 
-  const pnlColor = summary.total_pnl >= 0 ? "text-green-500" : "text-red-500";
+  const pnlColor =
+    summary.total_pnl >= 0 ? "text-t-green" : "text-t-red";
+  const pnlBg =
+    summary.total_pnl >= 0 ? "bg-t-green-bg" : "bg-t-red-bg";
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Dashboard</h2>
+    <div className="space-y-5">
+      <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
+        Dashboard
+      </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-t-panel border border-t-border rounded p-4">
+          <p className="text-[10px] text-t-muted tracking-wider uppercase mb-1">
             Portfolio Value
           </p>
-          <p className="text-3xl font-bold mt-1">
+          <p className="text-2xl font-bold">
             $
             {summary.total_value.toLocaleString(undefined, {
               minimumFractionDigits: 2,
             })}
           </p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="bg-t-panel border border-t-border rounded p-4">
+          <p className="text-[10px] text-t-muted tracking-wider uppercase mb-1">
             Total Cost
           </p>
-          <p className="text-3xl font-bold mt-1">
+          <p className="text-2xl font-bold">
             $
             {summary.total_cost.toLocaleString(undefined, {
               minimumFractionDigits: 2,
             })}
           </p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Total P&L</p>
-          <p className={`text-3xl font-bold mt-1 ${pnlColor}`}>
+        <div className={`bg-t-panel border border-t-border rounded p-4 ${pnlBg}`}>
+          <p className="text-[10px] text-t-muted tracking-wider uppercase mb-1">
+            Total P&L
+          </p>
+          <p className={`text-2xl font-bold ${pnlColor}`}>
             {summary.total_pnl >= 0 ? "+" : ""}$
             {summary.total_pnl.toLocaleString(undefined, {
               minimumFractionDigits: 2,
             })}
-            <span className="text-lg ml-2">
+            <span className="text-sm ml-2">
               ({summary.total_pnl_pct.toFixed(2)}%)
             </span>
           </p>

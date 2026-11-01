@@ -61,24 +61,26 @@ export default function Portfolio() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Holdings</h2>
+        <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
+          Holdings
+        </h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+          className="px-3 py-1.5 text-xs font-medium bg-t-accent text-t-bg rounded hover:brightness-110 transition-all tracking-wide"
         >
-          {showForm ? "Cancel" : "+ Add Holding"}
+          {showForm ? "CANCEL" : "+ ADD"}
         </button>
       </div>
 
       {showForm && (
         <form
           onSubmit={handleAdd}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="bg-t-panel border border-t-border rounded p-4 grid grid-cols-2 md:grid-cols-4 gap-3"
         >
           <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
               Ticker
             </label>
             <input
@@ -86,11 +88,11 @@ export default function Portfolio() {
               value={form.ticker}
               onChange={(e) => setForm({ ...form, ticker: e.target.value })}
               required
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-1.5 rounded border border-t-border bg-t-input text-sm focus:outline-none focus:border-t-accent"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
               Shares
             </label>
             <input
@@ -101,11 +103,11 @@ export default function Portfolio() {
                 setForm({ ...form, shares: Number(e.target.value) })
               }
               required
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-1.5 rounded border border-t-border bg-t-input text-sm focus:outline-none focus:border-t-accent"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
               Buy Price
             </label>
             <input
@@ -116,11 +118,11 @@ export default function Portfolio() {
                 setForm({ ...form, buy_price: Number(e.target.value) })
               }
               required
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-1.5 rounded border border-t-border bg-t-input text-sm focus:outline-none focus:border-t-accent"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
               Buy Date
             </label>
             <input
@@ -128,28 +130,28 @@ export default function Portfolio() {
               value={form.buy_date}
               onChange={(e) => setForm({ ...form, buy_date: e.target.value })}
               required
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-1.5 rounded border border-t-border bg-t-input text-sm focus:outline-none focus:border-t-accent"
             />
           </div>
           <div className="col-span-2 md:col-span-4">
             <button
               type="submit"
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+              className="px-4 py-1.5 text-xs font-medium bg-t-green text-t-bg rounded hover:brightness-110 tracking-wide"
             >
-              Save
+              SAVE
             </button>
           </div>
         </form>
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading prices...</p>
+        <p className="text-t-muted text-sm">Loading prices...</p>
       ) : holdings.length === 0 && !showForm ? (
-        <p className="text-gray-500">
-          No holdings yet. Click &quot;+ Add Holding&quot; to get started.
+        <p className="text-t-muted text-sm">
+          No holdings yet. Click "+ ADD" to get started.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {holdings.map((h) => (
             <HoldingCard key={h.id} holding={h} onDelete={handleDelete} />
           ))}
