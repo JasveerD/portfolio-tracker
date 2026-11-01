@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   INDICES,
   fetchTickerQuoteWithRetry,
+  needsDelay,
   type TickerQuote,
 } from "../services/marketOverview";
 
@@ -52,7 +53,7 @@ export default function MarketIndices({ onDone }: Props) {
             );
           }
         }
-        if (i < INDICES.length - 1 && !cancelled) await delay(8000);
+        if (i < INDICES.length - 1 && !cancelled && needsDelay()) await delay(8000);
       }
       if (!cancelled) onDoneRef.current?.();
     }

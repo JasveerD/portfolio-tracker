@@ -1,27 +1,49 @@
 import type { PricePoint } from "../types";
 
 const TWELVE_DATA = "https://api.twelvedata.com";
-const AV_BASE = "https://www.alphavantage.co/query";
+const FINNHUB = "https://finnhub.io/api/v1";
 const CACHE_TTL = 30 * 60 * 1000;
 
-function getApiKey(): string {
+export type Provider = "twelvedata" | "finnhub";
+
+export function getProvider(): Provider {
   try {
-    return localStorage.getItem("twelve_data_key") || "demo";
+    const v = localStorage.getItem("market_provider");
+    if (v === "finnhub") return "finnhub";
   } catch {
-    return "demo";
+    // ignore
   }
+  return "twelvedata";
 }
 
-export function setApiKey(key: string) {
+export function setProvider(p: Provider) {
   try {
-    localStorage.setItem("twelve_data_key", key);
+    localStorage.setItem("market_provider", p);
   } catch {
     // ignore
   }
 }
 
-export function getStoredApiKey(): string {
-  return getApiKey();
+export function getProviderKey(p: Provider): string {
+  try {
+    if (p === "finnhub") return localStorage.getItem("finnhub_key") || "";
+    return localStorage.getItem("twelve_data_key") || "demo";
+  } catch {
+    return p === "twelvedata" ? "demo" : "";
+  }
+}
+
+export function setProviderKey(p: Provider, key: string) {
+  try {
+    if (p === "finnhub") localStorage.setItem("finnhub_key", key);
+    else localStorage.setItem("twelve_data_key", key);
+  } catch {
+    // ignore
+  }
+}
+
+export function needsDelay(): boolean {
+  return getProvider() === "twelvedata" && getProviderKey("twelvedata") === "demo";
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -87,6 +109,61 @@ function setCache(key: string, data: TickerQuote) {
   }
 }
 
+async function fetchTwelveDataQuote(
+  ticker: string,
+  name: string,
+  apiKey: string
+): Promise<TickerQuote> {
+  const url = `${TWELVE_DATA}/time_series?symbol=${ticker}&interval=1day&outputsize=2&apikey=${apiKey}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+
+  if (res.status === 401 || res.status === 429) throw new Error("rate_limited");
+  if (!res.ok) throw new Error(`${res.status}`);
+
+  const data = await res.json();
+  if (data.code === 429 || data.message?.includes("minute"))
+    throw new Error("rate_limited");
+  if (data.status !== "ok" || !data.values?.length)
+    throw new Error(data.message || "No data");
+
+  const cur = parseFloat(data.values[0].close);
+  const prev = data.values.length > 1 ? parseFloat(data.values[1].close) : cur;
+  const change = cur - prev;
+  const changePct = prev > 0 ? (change / prev) * 100 : 0;
+
+  return {
+    ticker,
+    name,
+    price: Math.round(cur * 100) / 100,
+    change: Math.round(change * 100) / 100,
+    changePct: Math.round(changePct * 100) / 100,
+  };
+}
+
+async function fetchFinnhubQuote(
+  ticker: string,
+  name: string,
+  apiKey: string
+): Promise<TickerQuote> {
+  const url = `${FINNHUB}/quote?symbol=${ticker}&token=${apiKey}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+
+  if (res.status === 401 || res.status === 403) throw new Error("invalid_key");
+  if (res.status === 429) throw new Error("rate_limited");
+  if (!res.ok) throw new Error(`${res.status}`);
+
+  const data = await res.json();
+  if (!data.c || data.c === 0) throw new Error("No data");
+
+  return {
+    ticker,
+    name,
+    price: Math.round(data.c * 100) / 100,
+    change: Math.round(data.d * 100) / 100,
+    changePct: Math.round(data.dp * 100) / 100,
+  };
+}
+
 export async function fetchTickerQuote(
   ticker: string,
   name: string
@@ -95,35 +172,15 @@ export async function fetchTickerQuote(
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const apiKey = getApiKey();
-  const url = `${TWELVE_DATA}/time_series?symbol=${ticker}&interval=1day&outputsize=2&apikey=${apiKey}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const provider = getProvider();
+  const apiKey = getProviderKey(provider);
 
-  if (res.status === 401 || res.status === 429) {
-    throw new Error("rate_limited");
+  let quote: TickerQuote;
+  if (provider === "finnhub" && apiKey) {
+    quote = await fetchFinnhubQuote(ticker, name, apiKey);
+  } else {
+    quote = await fetchTwelveDataQuote(ticker, name, apiKey || "demo");
   }
-  if (!res.ok) throw new Error(`${res.status}`);
-
-  const data = await res.json();
-  if (data.code === 429 || data.message?.includes("minute")) {
-    throw new Error("rate_limited");
-  }
-  if (data.status !== "ok" || !data.values?.length)
-    throw new Error(data.message || "No data");
-
-  const cur = parseFloat(data.values[0].close);
-  const prev =
-    data.values.length > 1 ? parseFloat(data.values[1].close) : cur;
-  const change = cur - prev;
-  const changePct = prev > 0 ? (change / prev) * 100 : 0;
-
-  const quote: TickerQuote = {
-    ticker,
-    name,
-    price: Math.round(cur * 100) / 100,
-    change: Math.round(change * 100) / 100,
-    changePct: Math.round(changePct * 100) / 100,
-  };
 
   setCache(cacheKey, quote);
   return quote;
@@ -161,44 +218,65 @@ function getNewsCached(): NewsArticle[] | null {
   }
 }
 
+async function fetchFinnhubNews(apiKey: string): Promise<NewsArticle[]> {
+  const url = `${FINNHUB}/news?category=general&token=${apiKey}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Finnhub news returned ${res.status}`);
+
+  const data = await res.json();
+  if (!Array.isArray(data) || !data.length) return [];
+
+  return data.slice(0, 20).map(
+    (item: {
+      headline: string;
+      summary: string;
+      url: string;
+      source: string;
+      image: string;
+      datetime: number;
+      category: string;
+    }) => ({
+      title: item.headline,
+      summary: item.summary?.slice(0, 200) || "",
+      url: item.url,
+      source: item.source,
+      image: item.image || null,
+      publishedAt: new Date(item.datetime * 1000).toISOString().slice(0, 16).replace("T", " "),
+      sentiment: "",
+    })
+  );
+}
+
 export async function fetchMarketNews(): Promise<NewsArticle[]> {
   const cached = getNewsCached();
   if (cached) return cached;
 
-  const url = `${AV_BASE}?function=NEWS_SENTIMENT&topics=financial_markets&apikey=demo`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`News API returned ${res.status}`);
+  const provider = getProvider();
+  const finnhubKey = getProviderKey("finnhub");
 
-  const data = await res.json();
-  if (!data.feed?.length) return [];
+  let articles: NewsArticle[] = [];
 
-  const articles: NewsArticle[] = data.feed.slice(0, 20).map(
-    (item: {
-      title: string;
-      summary: string;
-      url: string;
-      source: string;
-      banner_image: string | null;
-      time_published: string;
-      overall_sentiment_label: string;
-    }) => ({
-      title: item.title,
-      summary: item.summary?.slice(0, 200) || "",
-      url: item.url,
-      source: item.source,
-      image: item.banner_image || null,
-      publishedAt: formatPublishedTime(item.time_published),
-      sentiment: item.overall_sentiment_label,
-    })
-  );
+  if (provider === "finnhub" && finnhubKey) {
+    articles = await fetchFinnhubNews(finnhubKey);
+  }
 
-  try {
-    sessionStorage.setItem(
-      "mkt_news",
-      JSON.stringify({ data: articles, ts: Date.now() })
-    );
-  } catch {
-    // ignore
+  if (articles.length === 0 && finnhubKey) {
+    try {
+      articles = await fetchFinnhubNews(finnhubKey);
+    } catch {
+      // fall through
+    }
+  }
+
+  if (articles.length > 0) {
+    try {
+      sessionStorage.setItem(
+        "mkt_news",
+        JSON.stringify({ data: articles, ts: Date.now() })
+      );
+    } catch {
+      // ignore
+    }
   }
 
   return articles;
@@ -217,7 +295,7 @@ function formatPublishedTime(raw: string): string {
 export async function fetchSectorHistory(
   ticker: string
 ): Promise<PricePoint[]> {
-  const apiKey = getApiKey();
+  const apiKey = getProviderKey("twelvedata");
   const end = new Date();
   const start = new Date(end.getTime() - 90 * 86400000);
   const url = `${TWELVE_DATA}/time_series?symbol=${ticker}&interval=1day&start_date=${start.toISOString().slice(0, 10)}&end_date=${end.toISOString().slice(0, 10)}&apikey=${apiKey}`;

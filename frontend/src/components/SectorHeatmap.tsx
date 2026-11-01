@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   SECTORS,
   fetchTickerQuoteWithRetry,
+  needsDelay,
   type TickerQuote,
 } from "../services/marketOverview";
 
@@ -53,7 +54,7 @@ export default function SectorHeatmap({ startLoading = true }: Props) {
             setLoaded((n) => n + 1);
           }
         }
-        if (i < SECTORS.length - 1 && !cancelled) await delay(8000);
+        if (i < SECTORS.length - 1 && !cancelled && needsDelay()) await delay(8000);
       }
     }
 

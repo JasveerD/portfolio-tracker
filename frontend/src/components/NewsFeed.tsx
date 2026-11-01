@@ -53,17 +53,16 @@ export default function NewsFeed() {
       {!loading && !error && articles.length === 0 && (
         <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2">
           <p>
-            News is unavailable with the demo API key. Get a free Alpha Vantage
-            key at{" "}
+            News requires an API key. Add a free{" "}
             <a
-              href="https://www.alphavantage.co/support/#api-key"
+              href="https://finnhub.io/register"
               target="_blank"
               rel="noopener noreferrer"
               className="text-indigo-500 hover:text-indigo-600"
             >
-              alphavantage.co
+              Finnhub
             </a>{" "}
-            for financial news with sentiment analysis.
+            key in API Settings above to get market news (and faster data loading).
           </p>
         </div>
       )}
