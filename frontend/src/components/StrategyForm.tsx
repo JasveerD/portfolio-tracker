@@ -42,120 +42,61 @@ const STRATEGY_INFO: Record<string, StrategyInfo> = {
   sma_crossover: {
     summary:
       "Tracks two Simple Moving Averages (SMA) of different lengths. When the shorter-term average crosses above the longer-term one, it signals upward momentum and triggers a buy. The reverse crossover signals fading momentum and triggers a sell.",
-    buyRule:
-      "Buy when the short SMA crosses above the long SMA (golden cross).",
-    sellRule:
-      "Sell when the short SMA crosses below the long SMA (death cross).",
+    buyRule: "Buy when the short SMA crosses above the long SMA (golden cross).",
+    sellRule: "Sell when the short SMA crosses below the long SMA (death cross).",
     params: [
-      {
-        name: "Short Window",
-        description:
-          "Number of days for the fast-moving average. Lower values react faster to price changes but produce more noise. Default: 20.",
-      },
-      {
-        name: "Long Window",
-        description:
-          "Number of days for the slow-moving average. Higher values smooth out noise but lag behind real moves. Default: 50.",
-      },
+      { name: "Short Window", description: "Days for the fast-moving average. Lower = faster reaction. Default: 20." },
+      { name: "Long Window", description: "Days for the slow-moving average. Higher = smoother. Default: 50." },
     ],
-    strengths:
-      "Works well in trending markets with sustained directional moves. Simple to understand and widely used.",
-    weaknesses:
-      "Generates frequent false signals in sideways or choppy markets. The moving averages lag behind price, so entries and exits are always somewhat late.",
+    strengths: "Works well in trending markets with sustained directional moves.",
+    weaknesses: "Frequent false signals in sideways or choppy markets.",
   },
   rsi: {
     summary:
-      "The Relative Strength Index measures the speed and magnitude of recent price changes on a 0–100 scale. Extreme low readings suggest the asset is oversold (potentially undervalued), while extreme high readings suggest it is overbought (potentially overvalued).",
-    buyRule:
-      "Buy when RSI crosses below the oversold threshold (e.g. drops under 30), signaling a potential reversal upward.",
-    sellRule:
-      "Sell when RSI crosses above the overbought threshold (e.g. rises above 70), signaling a potential reversal downward.",
+      "The Relative Strength Index measures the speed and magnitude of recent price changes on a 0-100 scale. Extreme low readings suggest oversold, extreme high suggest overbought.",
+    buyRule: "Buy when RSI drops below the oversold threshold (e.g. under 30).",
+    sellRule: "Sell when RSI rises above the overbought threshold (e.g. above 70).",
     params: [
-      {
-        name: "Period",
-        description:
-          "Lookback window for the RSI calculation. Shorter periods make the indicator more sensitive. Default: 14.",
-      },
-      {
-        name: "Oversold",
-        description:
-          "RSI level below which the asset is considered oversold. Lower values produce fewer but more extreme signals. Default: 30.",
-      },
-      {
-        name: "Overbought",
-        description:
-          "RSI level above which the asset is considered overbought. Higher values produce fewer but more extreme signals. Default: 70.",
-      },
+      { name: "Period", description: "Lookback window. Shorter = more sensitive. Default: 14." },
+      { name: "Oversold", description: "RSI level for buy signals. Default: 30." },
+      { name: "Overbought", description: "RSI level for sell signals. Default: 70." },
     ],
-    strengths:
-      "Good at catching reversals in range-bound markets. The thresholds are intuitive and easy to tune.",
-    weaknesses:
-      "In strong trends, RSI can stay overbought or oversold for extended periods, causing premature exits or missed rallies.",
+    strengths: "Good at catching reversals in range-bound markets.",
+    weaknesses: "In strong trends, RSI can stay overbought/oversold for extended periods.",
   },
   bollinger_bands: {
     summary:
-      "Bollinger Bands place an upper and lower band around a moving average, each offset by a multiple of the rolling standard deviation. Prices touching or breaking through a band suggest the asset has moved unusually far from its recent average.",
-    buyRule:
-      "Buy when the price crosses below the lower band, suggesting the asset is statistically cheap relative to recent history.",
-    sellRule:
-      "Sell when the price crosses above the upper band, suggesting the asset is statistically expensive relative to recent history.",
+      "Bollinger Bands place an upper and lower band around a moving average, each offset by a multiple of the rolling standard deviation.",
+    buyRule: "Buy when price crosses below the lower band.",
+    sellRule: "Sell when price crosses above the upper band.",
     params: [
-      {
-        name: "Period",
-        description:
-          "Lookback window for the moving average and standard deviation. Default: 20.",
-      },
-      {
-        name: "Std Dev",
-        description:
-          "Number of standard deviations for the band width. Higher values widen the bands and produce fewer signals. Default: 2.",
-      },
+      { name: "Period", description: "Lookback window for MA and std dev. Default: 20." },
+      { name: "Std Dev", description: "Band width multiplier. Higher = fewer signals. Default: 2." },
     ],
-    strengths:
-      "Adapts to volatility automatically — bands widen in volatile markets and tighten in calm ones. Effective for mean-reversion plays.",
-    weaknesses:
-      "In trending markets, price can ride along a band for long periods, generating losing trades. Assumes prices revert to the mean, which isn't always true.",
+    strengths: "Adapts to volatility automatically. Effective for mean-reversion.",
+    weaknesses: "In trending markets, price can ride along a band generating losing trades.",
   },
   macd: {
     summary:
-      "MACD (Moving Average Convergence Divergence) measures the difference between a fast and slow exponential moving average (EMA). A signal line — an EMA of the MACD line itself — is used to detect shifts in momentum. Crossovers between these two lines generate trade signals.",
-    buyRule:
-      "Buy when the MACD line crosses above the signal line (bullish crossover), indicating accelerating upward momentum.",
-    sellRule:
-      "Sell when the MACD line crosses below the signal line (bearish crossover), indicating accelerating downward momentum.",
+      "MACD measures the difference between a fast and slow EMA. A signal line (EMA of MACD) detects momentum shifts.",
+    buyRule: "Buy when MACD crosses above the signal line (bullish crossover).",
+    sellRule: "Sell when MACD crosses below the signal line (bearish crossover).",
     params: [
-      {
-        name: "Fast Period",
-        description:
-          "Days for the fast EMA. Reacts quickly to price changes. Default: 12.",
-      },
-      {
-        name: "Slow Period",
-        description:
-          "Days for the slow EMA. Captures the broader trend. Default: 26.",
-      },
-      {
-        name: "Signal Period",
-        description:
-          "Days for the signal line EMA (smoothed MACD). Lower values react faster to MACD changes. Default: 9.",
-      },
+      { name: "Fast Period", description: "Days for fast EMA. Default: 12." },
+      { name: "Slow Period", description: "Days for slow EMA. Default: 26." },
+      { name: "Signal Period", description: "Days for signal line EMA. Default: 9." },
     ],
-    strengths:
-      "Combines trend and momentum information in one indicator. More responsive than SMA crossovers due to exponential weighting.",
-    weaknesses:
-      "Still a lagging indicator — signals arrive after the move has started. Prone to whipsaws in trendless markets, similar to SMA crossover.",
+    strengths: "Combines trend and momentum. More responsive than SMA crossovers.",
+    weaknesses: "Still lagging. Prone to whipsaws in trendless markets.",
   },
   buy_and_hold: {
     summary:
-      "The simplest possible strategy: buy at the start of the period and hold until the end. No active trading decisions are made. Serves as the baseline benchmark that every other strategy should be compared against.",
-    buyRule: "Buy the full position on the first trading day of the period.",
-    sellRule:
-      "No sell signal — the position is held through the entire backtest window.",
+      "Buy at the start, hold until the end. No active trading. The baseline benchmark every strategy should beat.",
+    buyRule: "Buy on the first trading day.",
+    sellRule: "No sell signal — hold through entire period.",
     params: [],
-    strengths:
-      "Zero transaction costs, no whipsaw losses, and captures the full market return. Historically hard to beat over long horizons.",
-    weaknesses:
-      "Fully exposed to drawdowns with no risk management. Offers no downside protection during bear markets.",
+    strengths: "Zero transaction costs, captures full market return.",
+    weaknesses: "Fully exposed to drawdowns with no downside protection.",
   },
 };
 
@@ -193,35 +134,35 @@ export default function StrategyForm({ onSubmit, loading }: Props) {
   };
 
   const info = STRATEGY_INFO[strategy];
+  const inputClass =
+    "w-full px-3 py-1.5 rounded border border-t-border bg-t-input text-sm focus:outline-none focus:border-t-accent";
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 space-y-4"
+      className="bg-t-panel border border-t-border rounded p-4 space-y-4"
     >
-      <h3 className="text-lg font-bold">Backtest Configuration</h3>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div>
-          <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
             Ticker
           </label>
           <input
             type="text"
             value={ticker}
             onChange={(e) => setTicker(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+          <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
             Strategy
           </label>
           <select
             value={strategy}
             onChange={(e) => handleStrategyChange(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           >
             {STRATEGIES.map((s) => (
               <option key={s.value} value={s.value}>
@@ -232,132 +173,97 @@ export default function StrategyForm({ onSubmit, loading }: Props) {
           <button
             type="button"
             onClick={() => setShowInfo(!showInfo)}
-            className="mt-1.5 text-xs text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
+            className="mt-1 text-[10px] text-t-accent hover:text-t-text flex items-center gap-1 tracking-wide"
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            {showInfo ? "Hide details" : "How it works"}
+            {showInfo ? "HIDE" : "INFO"}
           </button>
         </div>
 
         <div>
-          <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-            Initial Capital
+          <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
+            Capital
           </label>
           <input
             type="number"
             value={capital}
             onChange={(e) => setCapital(Number(e.target.value))}
-            className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-            Start Date
+          <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
+            Start
           </label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-            End Date
+          <label className="block text-[10px] text-t-muted tracking-wider uppercase mb-1">
+            End
           </label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           />
         </div>
       </div>
 
       {showInfo && info && (
-        <div className="rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-4 space-y-3 text-sm">
-          <p className="text-gray-700 dark:text-gray-300">{info.summary}</p>
-
+        <div className="border border-t-border rounded p-3 space-y-2 text-xs bg-t-bg">
+          <p className="text-t-text">{info.summary}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="flex gap-2">
-              <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-green-500/15 text-green-600 dark:text-green-400 flex items-center justify-center text-xs font-bold">
+              <span className="shrink-0 w-4 h-4 rounded-sm bg-t-green-bg text-t-green flex items-center justify-center text-[10px] font-bold">
                 B
               </span>
-              <p className="text-gray-600 dark:text-gray-400">{info.buyRule}</p>
+              <p className="text-t-muted">{info.buyRule}</p>
             </div>
             <div className="flex gap-2">
-              <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 flex items-center justify-center text-xs font-bold">
+              <span className="shrink-0 w-4 h-4 rounded-sm bg-t-red-bg text-t-red flex items-center justify-center text-[10px] font-bold">
                 S
               </span>
-              <p className="text-gray-600 dark:text-gray-400">
-                {info.sellRule}
-              </p>
+              <p className="text-t-muted">{info.sellRule}</p>
             </div>
           </div>
-
           {info.params.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
-                Parameters
-              </p>
-              <div className="space-y-1.5">
-                {info.params.map((p) => (
-                  <p key={p.name} className="text-gray-600 dark:text-gray-400">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                      {p.name}
-                    </span>{" "}
-                    — {p.description}
-                  </p>
-                ))}
-              </div>
+            <div className="space-y-1">
+              {info.params.map((p) => (
+                <p key={p.name} className="text-t-muted">
+                  <span className="text-t-accent">{p.name}</span> — {p.description}
+                </p>
+              ))}
             </div>
           )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t dark:border-gray-700">
-            <div>
-              <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-0.5">
-                Works well when
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                {info.strengths}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-0.5">
-                Watch out for
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                {info.weaknesses}
-              </p>
-            </div>
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-t-border">
+            <p className="text-t-muted">
+              <span className="text-t-green text-[10px] tracking-wider">STRENGTH </span>
+              {info.strengths}
+            </p>
+            <p className="text-t-muted">
+              <span className="text-t-red text-[10px] tracking-wider">WEAKNESS </span>
+              {info.weaknesses}
+            </p>
           </div>
         </div>
       )}
 
       {Object.keys(params).length > 0 && (
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Strategy Parameters
+          <p className="text-[10px] text-t-muted tracking-wider uppercase mb-2">
+            Parameters
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {Object.entries(params).map(([key, val]) => (
               <div key={key}>
-                <label className="block text-xs text-gray-400 mb-1">
+                <label className="block text-[10px] text-t-muted mb-1">
                   {PARAM_LABELS[key] || key}
                 </label>
                 <input
@@ -367,7 +273,7 @@ export default function StrategyForm({ onSubmit, loading }: Props) {
                   onChange={(e) =>
                     setParams({ ...params, [key]: Number(e.target.value) })
                   }
-                  className="w-full px-3 py-1.5 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={inputClass}
                 />
               </div>
             ))}
@@ -378,9 +284,9 @@ export default function StrategyForm({ onSubmit, loading }: Props) {
       <button
         type="submit"
         disabled={loading}
-        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
+        className="px-5 py-1.5 text-xs font-medium bg-t-accent text-t-bg rounded hover:brightness-110 disabled:opacity-50 tracking-wide"
       >
-        {loading ? "Running..." : "Run Backtest"}
+        {loading ? "RUNNING..." : "RUN BACKTEST"}
       </button>
     </form>
   );

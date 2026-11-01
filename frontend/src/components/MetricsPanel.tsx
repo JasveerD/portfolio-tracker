@@ -22,16 +22,18 @@ function MetricCard({
   color?: string;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</p>
-      <p className={`text-xl font-bold ${color ?? ""}`}>{value}</p>
+    <div className="bg-t-panel border border-t-border rounded p-3">
+      <p className="text-[10px] text-t-muted tracking-wider uppercase mb-1">
+        {label}
+      </p>
+      <p className={`text-lg font-bold ${color ?? "text-t-text"}`}>{value}</p>
     </div>
   );
 }
 
 export default function MetricsPanel({ metrics }: Props) {
   const retColor =
-    metrics.total_return_pct >= 0 ? "text-green-500" : "text-red-500";
+    metrics.total_return_pct >= 0 ? "text-t-green" : "text-t-red";
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -52,7 +54,7 @@ export default function MetricsPanel({ metrics }: Props) {
       <MetricCard
         label="Max Drawdown"
         value={`${metrics.max_drawdown_pct.toFixed(2)}%`}
-        color="text-red-500"
+        color="text-t-red"
       />
       <MetricCard
         label="Win Rate"
@@ -62,7 +64,7 @@ export default function MetricsPanel({ metrics }: Props) {
       <MetricCard
         label="Total P&L"
         value={`$${metrics.total_pnl.toFixed(2)}`}
-        color={metrics.total_pnl >= 0 ? "text-green-500" : "text-red-500"}
+        color={metrics.total_pnl >= 0 ? "text-t-green" : "text-t-red"}
       />
     </div>
   );

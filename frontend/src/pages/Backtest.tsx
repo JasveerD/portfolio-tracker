@@ -43,18 +43,20 @@ export default function Backtest() {
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Strategy Backtester</h2>
+    <div className="space-y-5">
+      <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
+        Strategy Backtester
+      </h2>
       <StrategyForm onSubmit={handleSubmit} loading={loading} />
 
       {error && (
-        <div className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl p-4">
+        <div className="bg-t-red-bg border border-t-red/20 text-t-red rounded p-3 text-sm">
           {error}
         </div>
       )}
 
       {result && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <MetricsPanel metrics={result.metrics} />
           <EquityCurve
             equity={result.equity_curve}

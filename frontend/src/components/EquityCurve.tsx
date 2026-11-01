@@ -8,7 +8,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useDark } from "../hooks/useDark";
 
 interface Props {
   equity: { date: string; value: number }[];
@@ -16,10 +15,6 @@ interface Props {
 }
 
 export default function EquityCurve({ equity, buyHold }: Props) {
-  const dark = useDark();
-  const tickColor = dark ? "#9ca3af" : "#6b7280";
-  const gridColor = dark ? "#374151" : "#d1d5db";
-
   const merged = equity.map((e, i) => ({
     date: e.date,
     strategy: e.value,
@@ -27,37 +22,41 @@ export default function EquityCurve({ equity, buyHold }: Props) {
   }));
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-      <h3 className="text-lg font-bold mb-4">Equity Curve</h3>
+    <div className="bg-t-panel border border-t-border rounded p-4">
+      <h3 className="text-[10px] text-t-muted tracking-wider uppercase font-semibold mb-3">
+        Equity Curve
+      </h3>
       <ResponsiveContainer width="100%" height={350}>
         <LineChart data={merged}>
-          <CartesianGrid stroke={gridColor} strokeDasharray="3 3" opacity={0.4} />
+          <CartesianGrid stroke="#2a3142" strokeDasharray="3 3" opacity={0.5} />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 11, fill: tickColor }}
+            tick={{ fontSize: 10, fill: "#7d8590" }}
             tickFormatter={(v: string) => v.slice(5)}
-            stroke={gridColor}
+            stroke="#2a3142"
           />
-          <YAxis tick={{ fontSize: 11, fill: tickColor }} stroke={gridColor} />
+          <YAxis tick={{ fontSize: 10, fill: "#7d8590" }} stroke="#2a3142" />
           <Tooltip
             formatter={(value: number) => `$${value.toFixed(2)}`}
             labelFormatter={(label: string) => `Date: ${label}`}
             contentStyle={{
-              backgroundColor: dark ? "#1f2937" : "#fff",
-              border: `1px solid ${dark ? "#374151" : "#e5e7eb"}`,
-              borderRadius: "8px",
-              color: dark ? "#e5e7eb" : "#1f2937",
+              backgroundColor: "#151921",
+              border: "1px solid #2a3142",
+              borderRadius: "2px",
+              color: "#e6edf3",
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: "11px",
             }}
-            labelStyle={{ color: dark ? "#d1d5db" : "#374151" }}
-            itemStyle={{ color: dark ? "#e5e7eb" : "#1f2937" }}
+            labelStyle={{ color: "#7d8590" }}
+            itemStyle={{ color: "#e6edf3" }}
           />
           <Legend
-            wrapperStyle={{ color: tickColor }}
+            wrapperStyle={{ color: "#7d8590", fontSize: "11px" }}
           />
           <Line
             type="monotone"
             dataKey="strategy"
-            stroke="#6366f1"
+            stroke="#f0a030"
             dot={false}
             strokeWidth={2}
             name="Strategy"
@@ -65,7 +64,7 @@ export default function EquityCurve({ equity, buyHold }: Props) {
           <Line
             type="monotone"
             dataKey="buyHold"
-            stroke="#9ca3af"
+            stroke="#7d8590"
             dot={false}
             strokeWidth={2}
             strokeDasharray="5 5"

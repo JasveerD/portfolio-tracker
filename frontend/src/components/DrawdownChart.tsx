@@ -7,55 +7,54 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useDark } from "../hooks/useDark";
 
 interface Props {
   data: { date: string; value: number }[];
 }
 
 export default function DrawdownChart({ data }: Props) {
-  const dark = useDark();
-  const tickColor = dark ? "#9ca3af" : "#6b7280";
-  const gridColor = dark ? "#374151" : "#d1d5db";
-
   const formatted = data.map((d) => ({
     date: d.date,
     drawdown: +(d.value * 100).toFixed(2),
   }));
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-      <h3 className="text-lg font-bold mb-4">Drawdown</h3>
+    <div className="bg-t-panel border border-t-border rounded p-4">
+      <h3 className="text-[10px] text-t-muted tracking-wider uppercase font-semibold mb-3">
+        Drawdown
+      </h3>
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={formatted}>
-          <CartesianGrid stroke={gridColor} strokeDasharray="3 3" opacity={0.4} />
+          <CartesianGrid stroke="#2a3142" strokeDasharray="3 3" opacity={0.5} />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 11, fill: tickColor }}
+            tick={{ fontSize: 10, fill: "#7d8590" }}
             tickFormatter={(v: string) => v.slice(5)}
-            stroke={gridColor}
+            stroke="#2a3142"
           />
           <YAxis
-            tick={{ fontSize: 11, fill: tickColor }}
+            tick={{ fontSize: 10, fill: "#7d8590" }}
             tickFormatter={(v: number) => `${v}%`}
-            stroke={gridColor}
+            stroke="#2a3142"
           />
           <Tooltip
             formatter={(value: number) => `${value.toFixed(2)}%`}
             contentStyle={{
-              backgroundColor: dark ? "#1f2937" : "#fff",
-              border: `1px solid ${dark ? "#374151" : "#e5e7eb"}`,
-              borderRadius: "8px",
-              color: dark ? "#e5e7eb" : "#1f2937",
+              backgroundColor: "#151921",
+              border: "1px solid #2a3142",
+              borderRadius: "2px",
+              color: "#e6edf3",
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: "11px",
             }}
-            labelStyle={{ color: dark ? "#d1d5db" : "#374151" }}
-            itemStyle={{ color: dark ? "#e5e7eb" : "#1f2937" }}
+            labelStyle={{ color: "#7d8590" }}
+            itemStyle={{ color: "#e6edf3" }}
           />
           <Area
             type="monotone"
             dataKey="drawdown"
-            stroke="#ef4444"
-            fill="#ef444433"
+            stroke="#f85149"
+            fill="rgba(248,81,73,0.12)"
             strokeWidth={2}
           />
         </AreaChart>
