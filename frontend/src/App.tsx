@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import Backtest from "./pages/Backtest";
 import Dashboard from "./pages/Dashboard";
+import Market from "./pages/Market";
 import Portfolio from "./pages/Portfolio";
 
 const NAV = [
   { path: "/", label: "Dashboard" },
   { path: "/portfolio", label: "Portfolio" },
   { path: "/backtest", label: "Backtest" },
+  { path: "/market", label: "Market" },
 ];
 
 export default function App() {
@@ -65,6 +67,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/backtest" element={<Backtest />} />
+          <Route path="/market" element={<Market />} />
         </Routes>
       </main>
     </div>
