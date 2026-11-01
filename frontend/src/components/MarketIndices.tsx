@@ -65,22 +65,22 @@ export default function MarketIndices({ onDone }: Props) {
   }, []);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {quotes.map((q) => (
         <div
           key={q.ticker}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow p-4"
+          className="bg-t-panel border border-t-border rounded p-3"
         >
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <span className="text-[10px] font-medium text-t-muted tracking-wider">
               {q.ticker}
             </span>
             {!q.loading && !q.error && (
               <span
-                className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                   q.change >= 0
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    ? "bg-t-green-bg text-t-green"
+                    : "bg-t-red-bg text-t-red"
                 }`}
               >
                 {q.change >= 0 ? "+" : ""}
@@ -88,15 +88,13 @@ export default function MarketIndices({ onDone }: Props) {
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
-            {q.name}
-          </p>
+          <p className="text-xs text-t-muted mb-1">{q.name}</p>
           {q.loading ? (
-            <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-6 bg-t-input rounded animate-pulse" />
           ) : q.error ? (
-            <p className="text-sm text-red-400">Failed to load</p>
+            <p className="text-xs text-t-red">Failed to load</p>
           ) : (
-            <p className="text-xl font-bold">
+            <p className="text-lg font-bold">
               $
               {q.price.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
@@ -105,8 +103,8 @@ export default function MarketIndices({ onDone }: Props) {
           )}
           {!q.loading && !q.error && (
             <p
-              className={`text-xs mt-0.5 ${
-                q.change >= 0 ? "text-green-500" : "text-red-500"
+              className={`text-[10px] mt-0.5 ${
+                q.change >= 0 ? "text-t-green" : "text-t-red"
               }`}
             >
               {q.change >= 0 ? "+" : ""}

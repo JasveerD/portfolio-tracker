@@ -65,24 +65,24 @@ export default function SectorHeatmap({ startLoading = true }: Props) {
   }, [startLoading]);
 
   function getBg(pct: number): string {
-    if (pct >= 2) return "bg-green-600 text-white";
-    if (pct >= 1) return "bg-green-500 text-white";
-    if (pct >= 0.5) return "bg-green-400 text-white";
-    if (pct >= 0)
-      return "bg-green-300 dark:bg-green-800 text-green-900 dark:text-green-100";
-    if (pct >= -0.5)
-      return "bg-red-300 dark:bg-red-800 text-red-900 dark:text-red-100";
-    if (pct >= -1) return "bg-red-400 text-white";
-    if (pct >= -2) return "bg-red-500 text-white";
-    return "bg-red-600 text-white";
+    if (pct >= 2) return "bg-green-700 text-green-100";
+    if (pct >= 1) return "bg-green-600/80 text-green-100";
+    if (pct >= 0.5) return "bg-green-600/50 text-green-200";
+    if (pct >= 0) return "bg-t-green-bg text-t-green";
+    if (pct >= -0.5) return "bg-t-red-bg text-t-red";
+    if (pct >= -1) return "bg-red-600/50 text-red-200";
+    if (pct >= -2) return "bg-red-600/80 text-red-100";
+    return "bg-red-700 text-red-100";
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold">Sector Performance</h3>
+    <div className="bg-t-panel border border-t-border rounded p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[10px] text-t-muted tracking-wider uppercase font-semibold">
+          Sector Performance
+        </h3>
         {loaded < SECTORS.length && (
-          <span className="text-xs text-gray-400">
+          <span className="text-[10px] text-t-muted">
             {startLoading
               ? `Loading ${loaded}/${SECTORS.length}...`
               : "Waiting for indices..."}
@@ -93,34 +93,32 @@ export default function SectorHeatmap({ startLoading = true }: Props) {
         {sectors.map((s) => (
           <div
             key={s.ticker}
-            className={`rounded-lg p-3 text-center transition-colors ${
+            className={`rounded p-2.5 text-center transition-colors ${
               s.loading
-                ? "bg-gray-100 dark:bg-gray-700"
+                ? "bg-t-input"
                 : s.error
-                ? "bg-gray-200 dark:bg-gray-700"
+                ? "bg-t-input"
                 : getBg(s.changePct)
             }`}
           >
             <p
-              className={`text-xs font-medium ${
-                s.loading || s.error
-                  ? "text-gray-500 dark:text-gray-400"
-                  : ""
+              className={`text-[10px] font-medium ${
+                s.loading || s.error ? "text-t-muted" : ""
               }`}
             >
               {s.name}
             </p>
             {s.loading ? (
-              <div className="h-5 mt-1 bg-gray-200 dark:bg-gray-600 rounded animate-pulse mx-auto w-12" />
+              <div className="h-4 mt-1 bg-t-border rounded animate-pulse mx-auto w-10" />
             ) : s.error ? (
-              <p className="text-xs text-red-400 mt-1">--</p>
+              <p className="text-[10px] text-t-red mt-1">--</p>
             ) : (
-              <p className="text-sm font-bold mt-0.5">
+              <p className="text-xs font-bold mt-0.5">
                 {s.changePct >= 0 ? "+" : ""}
                 {s.changePct.toFixed(2)}%
               </p>
             )}
-            <p className="text-[10px] mt-0.5 opacity-70">{s.ticker}</p>
+            <p className="text-[9px] mt-0.5 opacity-60">{s.ticker}</p>
           </div>
         ))}
       </div>

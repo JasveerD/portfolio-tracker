@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import { fetchMarketNews, type NewsArticle } from "../services/marketOverview";
 
 const SENTIMENT_BADGE: Record<string, string> = {
-  Bullish: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  "Somewhat-Bullish":
-    "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
-  Neutral: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
-  "Somewhat-Bearish":
-    "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
-  Bearish: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  Bullish: "bg-t-green-bg text-t-green",
+  "Somewhat-Bullish": "bg-t-green-bg text-t-green",
+  Neutral: "bg-t-input text-t-muted",
+  "Somewhat-Bearish": "bg-t-red-bg text-t-red",
+  Bearish: "bg-t-red-bg text-t-red",
 };
 
 export default function NewsFeed() {
@@ -29,17 +27,19 @@ export default function NewsFeed() {
   }, []);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-      <h3 className="text-lg font-bold mb-4">Financial News</h3>
+    <div className="bg-t-panel border border-t-border rounded p-4">
+      <h3 className="text-[10px] text-t-muted tracking-wider uppercase font-semibold mb-3">
+        Financial News
+      </h3>
 
       {loading && (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse flex gap-3">
-              <div className="w-20 h-14 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
+              <div className="w-20 h-14 bg-t-input rounded shrink-0" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                <div className="h-4 bg-t-input rounded w-3/4" />
+                <div className="h-3 bg-t-input rounded w-1/2" />
               </div>
             </div>
           ))}
@@ -47,18 +47,18 @@ export default function NewsFeed() {
       )}
 
       {error && (
-        <p className="text-sm text-red-400">Could not load news: {error}</p>
+        <p className="text-xs text-t-red">Could not load news: {error}</p>
       )}
 
       {!loading && !error && articles.length === 0 && (
-        <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2">
+        <div className="text-xs text-t-muted space-y-2">
           <p>
             News requires an API key. Add a free{" "}
             <a
               href="https://finnhub.io/register"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-indigo-500 hover:text-indigo-600"
+              className="text-t-accent hover:text-t-text"
             >
               Finnhub
             </a>{" "}
@@ -68,14 +68,14 @@ export default function NewsFeed() {
       )}
 
       {!loading && articles.length > 0 && (
-        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
           {articles.map((a, i) => (
             <a
               key={i}
               href={a.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex gap-3 p-2 -mx-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group"
+              className="flex gap-3 p-2 -mx-2 rounded hover:bg-t-input/50 transition-colors group"
             >
               {a.image && (
                 <img
@@ -88,19 +88,17 @@ export default function NewsFeed() {
                 />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-2">
+                <p className="text-xs text-t-text group-hover:text-t-accent line-clamp-2">
                   {a.title}
                 </p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-[11px] text-gray-400">
-                    {a.source}
-                  </span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[10px] text-t-muted">{a.source}</span>
+                  <span className="text-[10px] text-t-muted">
                     {a.publishedAt}
                   </span>
                   {a.sentiment && a.sentiment !== "Neutral" && (
                     <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                      className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
                         SENTIMENT_BADGE[a.sentiment] ||
                         SENTIMENT_BADGE.Neutral
                       }`}
