@@ -282,15 +282,6 @@ export async function fetchMarketNews(): Promise<NewsArticle[]> {
   return articles;
 }
 
-function formatPublishedTime(raw: string): string {
-  if (!raw || raw.length < 8) return raw;
-  const y = raw.slice(0, 4);
-  const m = raw.slice(4, 6);
-  const d = raw.slice(6, 8);
-  const h = raw.slice(9, 11) || "00";
-  const min = raw.slice(11, 13) || "00";
-  return `${y}-${m}-${d} ${h}:${min}`;
-}
 
 export async function fetchSectorHistory(
   ticker: string
