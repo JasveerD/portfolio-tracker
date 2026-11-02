@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getProviderKey } from "../../services/marketOverview";
+import { fetchHistoryByPeriod } from "../../services/marketData";
 
 const FINNHUB = "https://finnhub.io/api/v1";
 const MONTHS = [
@@ -33,41 +34,72 @@ export default function SeasonalityHeatmap({ ticker }: Props) {
 
     async function load() {
       const key = getProviderKey("finnhub");
-      if (!key) {
-        setLoading(false);
-        return;
+      let monthReturns: number[][] = Array.from({ length: 12 }, () => []);
+
+      // Try Finnhub monthly candles first
+      if (key) {
+        try {
+          const to = Math.floor(Date.now() / 1000);
+          const from = to - 5 * 365 * 86400;
+          const url = `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=M&from=${from}&to=${to}&token=${key}`;
+          const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+          if (res.ok && !cancelled) {
+            const data = await res.json();
+            if (data.s === "ok" && data.c && data.o) {
+              for (let i = 0; i < data.t.length; i++) {
+                const month = new Date(data.t[i] * 1000).getMonth();
+                const ret = ((data.c[i] - data.o[i]) / data.o[i]) * 100;
+                monthReturns[month].push(ret);
+              }
+            }
+          }
+        } catch {
+          // fall through
+        }
       }
 
-      try {
-        const to = Math.floor(Date.now() / 1000);
-        const from = to - 5 * 365 * 86400;
-        const url = `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=M&from=${from}&to=${to}&token=${key}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        if (data.s !== "ok" || !data.c || !data.o) return;
-
-        const monthReturns: number[][] = Array.from({ length: 12 }, () => []);
-        for (let i = 0; i < data.t.length; i++) {
-          const month = new Date(data.t[i] * 1000).getMonth();
-          const ret = ((data.c[i] - data.o[i]) / data.o[i]) * 100;
-          monthReturns[month].push(ret);
+      // Fallback: compute monthly returns from daily data
+      const hasData = monthReturns.some((arr) => arr.length > 0);
+      if (!hasData && !cancelled) {
+        try {
+          const pts = await fetchHistoryByPeriod(ticker, "5y");
+          let prevMonth = -1;
+          let monthOpen = 0;
+          for (const p of pts) {
+            const month = new Date(p.date).getMonth();
+            if (month !== prevMonth) {
+              if (prevMonth !== -1 && monthOpen > 0) {
+                const lastClose = pts[pts.indexOf(p) - 1]?.close ?? p.close;
+                monthReturns[prevMonth].push(
+                  ((lastClose - monthOpen) / monthOpen) * 100
+                );
+              }
+              monthOpen = p.open;
+              prevMonth = month;
+            }
+          }
+          if (prevMonth !== -1 && monthOpen > 0) {
+            const lastPt = pts[pts.length - 1];
+            monthReturns[prevMonth].push(
+              ((lastPt.close - monthOpen) / monthOpen) * 100
+            );
+          }
+        } catch {
+          // give up
         }
-
-        const avgs = monthReturns.map((arr) =>
-          arr.length > 0
-            ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) /
-              10
-            : null
-        );
-
-        if (!cancelled) {
-          setMonthlyAvg(avgs);
-          setLoading(false);
-        }
-      } catch {
-        if (!cancelled) setLoading(false);
       }
+
+      if (cancelled) return;
+
+      const avgs = monthReturns.map((arr) =>
+        arr.length > 0
+          ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) /
+            10
+          : null
+      );
+
+      setMonthlyAvg(avgs);
+      setLoading(false);
     }
 
     load();
@@ -75,9 +107,6 @@ export default function SeasonalityHeatmap({ ticker }: Props) {
       cancelled = true;
     };
   }, [ticker]);
-
-  const key = getProviderKey("finnhub");
-  if (!key) return null;
 
   function getBg(pct: number): string {
     if (pct >= 4) return "bg-green-600 text-white";

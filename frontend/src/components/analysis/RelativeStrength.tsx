@@ -10,6 +10,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { getProviderKey } from "../../services/marketOverview";
+import { fetchHistoryByPeriod } from "../../services/marketData";
 
 const FINNHUB = "https://finnhub.io/api/v1";
 
@@ -29,60 +30,86 @@ export default function RelativeStrength({ ticker }: Props) {
 
     async function load() {
       const key = getProviderKey("finnhub");
-      if (!key) {
-        setLoading(false);
+      let closes1: number[] = [];
+      let closes2: number[] = [];
+      let dates1: string[] = [];
+      let dates2: string[] = [];
+
+      if (key) {
+        try {
+          const to = Math.floor(Date.now() / 1000);
+          const from = to - 180 * 86400;
+
+          const [res1, res2] = await Promise.all([
+            fetch(
+              `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`,
+              { signal: AbortSignal.timeout(15000) }
+            ),
+            fetch(
+              `${FINNHUB}/stock/candle?symbol=${compare}&resolution=D&from=${from}&to=${to}&token=${key}`,
+              { signal: AbortSignal.timeout(15000) }
+            ),
+          ]);
+
+          if (cancelled) return;
+          if (res1.ok && res2.ok) {
+            const d1 = await res1.json();
+            const d2 = await res2.json();
+            if (d1.s === "ok" && d2.s === "ok" && d1.c && d2.c) {
+              closes1 = d1.c;
+              closes2 = d2.c;
+              dates1 = d1.t.map((ts: number) => new Date(ts * 1000).toISOString().slice(0, 10));
+              dates2 = d2.t.map((ts: number) => new Date(ts * 1000).toISOString().slice(0, 10));
+            }
+          }
+        } catch {
+          // fall through to Twelve Data
+        }
+      }
+
+      // Fallback to Twelve Data
+      if (closes1.length === 0) {
+        try {
+          const [pts1, pts2] = await Promise.all([
+            fetchHistoryByPeriod(ticker, "6mo"),
+            fetchHistoryByPeriod(compare, "6mo"),
+          ]);
+          if (cancelled) return;
+          closes1 = pts1.map((p) => p.close);
+          closes2 = pts2.map((p) => p.close);
+          dates1 = pts1.map((p) => p.date);
+          dates2 = pts2.map((p) => p.date);
+        } catch {
+          if (!cancelled) setLoading(false);
+          return;
+        }
+      }
+
+      if (cancelled || closes1.length < 5 || closes2.length < 5) {
+        if (!cancelled) setLoading(false);
         return;
       }
 
-      const to = Math.floor(Date.now() / 1000);
-      const from = to - 180 * 86400;
+      const map2 = new Map<string, number>();
+      dates2.forEach((d, i) => map2.set(d, closes2[i]));
 
-      const [res1, res2] = await Promise.all([
-        fetch(
-          `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`,
-          { signal: AbortSignal.timeout(15000) }
-        ),
-        fetch(
-          `${FINNHUB}/stock/candle?symbol=${compare}&resolution=D&from=${from}&to=${to}&token=${key}`,
-          { signal: AbortSignal.timeout(15000) }
-        ),
-      ]);
-
-      if (cancelled) return;
-      if (!res1.ok || !res2.ok) {
-        setLoading(false);
-        return;
-      }
-
-      const d1 = await res1.json();
-      const d2 = await res2.json();
-
-      if (d1.s !== "ok" || d2.s !== "ok" || !d1.c || !d2.c) {
-        setLoading(false);
-        return;
-      }
-
-      const map2 = new Map<number, number>();
-      d2.t.forEach((ts: number, i: number) => map2.set(ts, d2.c[i]));
-
-      const base1 = d1.c[0];
-      const firstTs = d1.t[0];
-      const base2 = map2.get(firstTs) || d2.c[0];
+      const base1 = closes1[0];
+      const base2 = map2.get(dates1[0]) || closes2[0];
 
       const points: { date: string; ratio: number }[] = [];
-      const step = Math.max(1, Math.floor(d1.t.length / 80));
+      const step = Math.max(1, Math.floor(dates1.length / 80));
 
-      for (let i = 0; i < d1.t.length; i += step) {
-        const ts = d1.t[i];
-        const c2 = map2.get(ts);
+      for (let i = 0; i < dates1.length; i += step) {
+        const d = dates1[i];
+        const c2 = map2.get(d);
         if (c2 === undefined) continue;
 
-        const norm1 = d1.c[i] / base1;
+        const norm1 = closes1[i] / base1;
         const norm2 = c2 / base2;
         const ratio = norm2 > 0 ? (norm1 / norm2 - 1) * 100 : 0;
 
         points.push({
-          date: new Date(ts * 1000).toISOString().slice(5, 10),
+          date: d.slice(5, 10),
           ratio: Math.round(ratio * 10) / 10,
         });
       }
@@ -103,9 +130,6 @@ export default function RelativeStrength({ ticker }: Props) {
     e.preventDefault();
     if (input.trim()) setCompare(input.trim().toUpperCase());
   }
-
-  const key = getProviderKey("finnhub");
-  if (!key) return null;
 
   return (
     <div className="bg-t-panel border border-t-border rounded p-3 space-y-2">

@@ -39,6 +39,7 @@ function setCache<T>(key: string, data: T): void {
 
 interface TwelveDataResponse {
   status: string;
+  code?: number;
   values?: {
     datetime: string;
     open: string;
@@ -69,17 +70,43 @@ function parseTwelveData(
     .reverse();
 }
 
+async function fetchTwelveDataWithKey(
+  ticker: string,
+  startDate: string,
+  endDate: string,
+  apiKey: string
+): Promise<PricePoint[]> {
+  const url = `${TWELVE_DATA}/time_series?symbol=${ticker.toUpperCase()}&interval=1day&start_date=${startDate}&end_date=${endDate}&apikey=${apiKey}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  if (!res.ok) {
+    if (res.status === 401 && apiKey === "demo") {
+      throw new Error("demo_limit");
+    }
+    throw new Error(`Twelve Data ${res.status}`);
+  }
+  const data: TwelveDataResponse = await res.json();
+  if (data.status === "error" && data.message?.includes("demo")) {
+    throw new Error("demo_limit");
+  }
+  return parseTwelveData(data, ticker);
+}
+
 async function fetchTwelveData(
   ticker: string,
   startDate: string,
   endDate: string
 ): Promise<PricePoint[]> {
   const key = getProviderKey("twelvedata");
-  const url = `${TWELVE_DATA}/time_series?symbol=${ticker.toUpperCase()}&interval=1day&start_date=${startDate}&end_date=${endDate}&apikey=${key}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
-  if (!res.ok) throw new Error(`Twelve Data returned ${res.status}`);
-  const data: TwelveDataResponse = await res.json();
-  return parseTwelveData(data, ticker);
+  try {
+    return await fetchTwelveDataWithKey(ticker, startDate, endDate, key);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    // If user's custom key fails with auth error, retry with demo
+    if (key !== "demo" && (msg.includes("401") || msg.includes("403"))) {
+      return await fetchTwelveDataWithKey(ticker, startDate, endDate, "demo");
+    }
+    throw e;
+  }
 }
 
 async function fetchFinnhubCandles(
@@ -164,6 +191,13 @@ export async function fetchPriceHistory(
     }
   }
 
+  const isDemoLimit = errors.some((e) => e.includes("demo_limit"));
+  if (isDemoLimit) {
+    throw new Error(
+      `The demo API key doesn't support ${ticker}. Get a free API key at twelvedata.com or finnhub.io and add it in Market → API Settings.`
+    );
+  }
+
   throw new Error(
     `Could not fetch price data for ${ticker}. ${errors.join(" | ")}. Check your API key in Market → API Settings.`
   );
@@ -197,21 +231,24 @@ export async function fetchCurrentPrice(
     }
   }
 
-  // Twelve Data quote
-  try {
-    const key = getProviderKey("twelvedata");
-    const url = `${TWELVE_DATA}/price?symbol=${ticker.toUpperCase()}&apikey=${key}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.price) {
-        const price = parseFloat(data.price);
-        setCache(cacheKey, price);
-        return price;
+  // Twelve Data quote — try user key then demo
+  for (const tdKey of [...new Set([getProviderKey("twelvedata"), "demo"])]) {
+    try {
+      const url = `${TWELVE_DATA}/price?symbol=${ticker.toUpperCase()}&apikey=${tdKey}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.price) {
+          const price = parseFloat(data.price);
+          setCache(cacheKey, price);
+          return price;
+        }
       }
+      if (res.status === 401 || res.status === 403) continue;
+      break;
+    } catch {
+      break;
     }
-  } catch {
-    // fallback below
   }
 
   // Finnhub fallback if not already tried

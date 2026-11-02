@@ -11,6 +11,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { getProviderKey } from "../../services/marketOverview";
+import { fetchHistoryByPeriod } from "../../services/marketData";
 
 const FINNHUB = "https://finnhub.io/api/v1";
 
@@ -149,36 +150,51 @@ export default function TechnicalChart({ ticker }: Props) {
     setError(false);
 
     async function load() {
+      let closes: number[] = [];
+      let dates: string[] = [];
+
+      // Try Finnhub candles first
       const finnhubKey = getProviderKey("finnhub");
-      if (!finnhubKey) {
+      if (finnhubKey) {
+        try {
+          const to = Math.floor(Date.now() / 1000);
+          const from = to - 180 * 86400;
+          const url = `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${finnhubKey}`;
+          const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.s === "ok" && json.c?.length) {
+              closes = json.c;
+              dates = json.t.map((ts: number) =>
+                new Date(ts * 1000).toISOString().slice(5, 10)
+              );
+            }
+          }
+        } catch {
+          // fall through to Twelve Data
+        }
+      }
+
+      // Fallback to Twelve Data via marketData service
+      if (closes.length === 0) {
+        try {
+          const pts = await fetchHistoryByPeriod(ticker, "6mo");
+          closes = pts.map((p) => p.close);
+          dates = pts.map((p) => p.date.slice(5, 10));
+        } catch {
+          // nothing worked
+        }
+      }
+
+      if (cancelled) return;
+      if (closes.length < 30) {
         setError(true);
         setLoading(false);
         return;
       }
-      try {
-        const to = Math.floor(Date.now() / 1000);
-        const from = to - 180 * 86400;
-        const url = `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${finnhubKey}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-        if (!res.ok) throw new Error();
-        const json = await res.json();
-        if (json.s !== "ok" || !json.c) throw new Error();
 
-        const closes: number[] = json.c;
-        const dates: string[] = json.t.map((ts: number) =>
-          new Date(ts * 1000).toISOString().slice(5, 10)
-        );
-
-        if (!cancelled) {
-          setData(computeIndicators(closes, dates));
-          setLoading(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setError(true);
-          setLoading(false);
-        }
-      }
+      setData(computeIndicators(closes, dates));
+      setLoading(false);
     }
 
     load();
@@ -199,7 +215,7 @@ export default function TechnicalChart({ ticker }: Props) {
     return (
       <div className="bg-t-panel border border-t-border rounded p-3">
         <p className="text-[10px] text-t-muted">
-          Technical chart requires Finnhub API key.
+          Not enough price data for technical analysis.
         </p>
       </div>
     );

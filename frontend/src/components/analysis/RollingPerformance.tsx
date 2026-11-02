@@ -10,6 +10,7 @@ import {
   Legend,
 } from "recharts";
 import { getProviderKey } from "../../services/marketOverview";
+import { fetchHistoryByPeriod } from "../../services/marketData";
 
 const FINNHUB = "https://finnhub.io/api/v1";
 
@@ -22,21 +23,35 @@ interface DataPoint {
 
 async function fetchCandles(
   ticker: string,
-  key: string
+  key: string | null
 ): Promise<{ dates: string[]; closes: number[] }> {
-  const to = Math.floor(Date.now() / 1000);
-  const from = to - 365 * 86400;
-  const url = `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) return { dates: [], closes: [] };
-  const data = await res.json();
-  if (data.s !== "ok" || !data.c) return { dates: [], closes: [] };
-  return {
-    dates: data.t.map((ts: number) =>
-      new Date(ts * 1000).toISOString().slice(0, 10)
-    ),
-    closes: data.c,
-  };
+  if (key) {
+    try {
+      const to = Math.floor(Date.now() / 1000);
+      const from = to - 365 * 86400;
+      const url = `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.s === "ok" && data.c?.length) {
+          return {
+            dates: data.t.map((ts: number) =>
+              new Date(ts * 1000).toISOString().slice(0, 10)
+            ),
+            closes: data.c,
+          };
+        }
+      }
+    } catch {
+      // fall through
+    }
+  }
+  try {
+    const pts = await fetchHistoryByPeriod(ticker, "1y");
+    return { dates: pts.map((p) => p.date), closes: pts.map((p) => p.close) };
+  } catch {
+    return { dates: [], closes: [] };
+  }
 }
 
 function rollingReturn(closes: number[], period: number): (number | null)[] {
@@ -59,14 +74,10 @@ export default function RollingPerformance({ ticker }: Props) {
 
     async function load() {
       const key = getProviderKey("finnhub");
-      if (!key) {
-        setLoading(false);
-        return;
-      }
 
       const [tickerData, spyData] = await Promise.all([
-        fetchCandles(ticker, key),
-        fetchCandles("SPY", key),
+        fetchCandles(ticker, key || null),
+        fetchCandles("SPY", key || null),
       ]);
 
       if (cancelled) return;
