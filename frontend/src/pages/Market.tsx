@@ -1,4 +1,6 @@
 import { useState } from "react";
+import CommoditiesPanel from "../components/Commodities";
+import GlobalMarkets from "../components/GlobalMarkets";
 import MarketIndices from "../components/MarketIndices";
 import MarketMovers from "../components/MarketMovers";
 import NewsFeed from "../components/NewsFeed";
@@ -42,6 +44,8 @@ export default function Market() {
   const [provider, setProviderState] = useState<Provider>(() => getProvider());
   const [key, setKey] = useState(() => getProviderKey(provider));
   const [indicesDone, setIndicesDone] = useState(false);
+  const [commoditiesDone, setCommoditiesDone] = useState(false);
+  const [globalDone, setGlobalDone] = useState(false);
   const [sectorsDone, setSectorsDone] = useState(false);
 
   function handleProviderChange(p: Provider) {
@@ -160,9 +164,19 @@ export default function Market() {
         </div>
       </div>
 
+      <CommoditiesPanel
+        startLoading={slow ? indicesDone : true}
+        onDone={() => setCommoditiesDone(true)}
+      />
+
+      <GlobalMarkets
+        startLoading={slow ? commoditiesDone : true}
+        onDone={() => setGlobalDone(true)}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SectorHeatmap
-          startLoading={slow ? indicesDone : true}
+          startLoading={slow ? globalDone : true}
           onDone={() => setSectorsDone(true)}
         />
         <MarketMovers startLoading={slow ? sectorsDone : indicesDone} />
