@@ -4,6 +4,7 @@ import GlobalMarkets from "../components/GlobalMarkets";
 import MarketIndices from "../components/MarketIndices";
 import MarketMovers from "../components/MarketMovers";
 import NewsFeed from "../components/NewsFeed";
+import PairsTrading from "../components/PairsTrading";
 import SectorHeatmap from "../components/SectorHeatmap";
 import TickerSearch from "../components/TickerSearch";
 import VixGauge from "../components/VixGauge";
@@ -250,6 +251,10 @@ export default function Market() {
 
       <Section title="Watchlist">
         <Watchlist />
+      </Section>
+
+      <Section title="Pairs Trading" defaultOpen={false}>
+        <PairsTrading />
       </Section>
 
       <Section title="Financial News">
