@@ -4,7 +4,7 @@ import {
   fetchTickerQuoteWithRetry,
   addToWatchlist,
   type TickerQuote,
-} from "../services/marketOverview";
+} from "../../services/marketOverview";
 import TickerDetail from "./TickerDetail";
 
 export default function TickerSearch() {

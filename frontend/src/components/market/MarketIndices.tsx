@@ -5,7 +5,7 @@ import {
   fetchSparklineData,
   needsDelay,
   type TickerQuote,
-} from "../services/marketOverview";
+} from "../../services/marketOverview";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

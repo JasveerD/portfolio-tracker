@@ -1,4 +1,4 @@
-import type { Holding } from "../types";
+import type { Holding } from "../../types";
 
 interface Props {
   holding: Holding;

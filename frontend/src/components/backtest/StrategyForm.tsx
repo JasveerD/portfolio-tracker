@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { BacktestRequest } from "../types";
+import type { BacktestRequest } from "../../types";
 
 const STRATEGIES = [
   { value: "sma_crossover", label: "SMA Crossover" },

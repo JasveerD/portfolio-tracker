@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchVixData, type TickerQuote } from "../services/marketOverview";
+import { fetchVixData, type TickerQuote } from "../../services/marketOverview";
 
 function getZone(val: number): { label: string; color: string } {
   if (val < 15) return { label: "LOW", color: "#3fb950" };

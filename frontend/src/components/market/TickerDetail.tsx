@@ -8,11 +8,11 @@ import {
   type AnalystRating,
   type InsiderTrade,
   type StockMetrics,
-} from "../services/marketOverview";
-import RelativeStrength from "./RelativeStrength";
-import RollingPerformance from "./RollingPerformance";
-import SeasonalityHeatmap from "./SeasonalityHeatmap";
-import TechnicalChart from "./TechnicalChart";
+} from "../../services/marketOverview";
+import RelativeStrength from "../analysis/RelativeStrength";
+import RollingPerformance from "../analysis/RollingPerformance";
+import SeasonalityHeatmap from "../analysis/SeasonalityHeatmap";
+import TechnicalChart from "../analysis/TechnicalChart";
 
 interface Props {
   ticker: string;

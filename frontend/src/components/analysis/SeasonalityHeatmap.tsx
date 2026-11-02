@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getProviderKey } from "../services/marketOverview";
+import { getProviderKey } from "../../services/marketOverview";
 
 const FINNHUB = "https://finnhub.io/api/v1";
 const MONTHS = [

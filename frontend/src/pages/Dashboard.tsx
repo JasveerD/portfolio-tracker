@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import AllocationChart from "../components/AllocationChart";
+import AllocationChart from "../components/portfolio/AllocationChart";
 import { fetchCurrentPrice } from "../services/marketData";
 import { getHoldings } from "../services/storage";
 

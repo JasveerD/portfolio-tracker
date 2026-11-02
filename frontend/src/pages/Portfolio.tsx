@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import HoldingCard from "../components/HoldingCard";
+import HoldingCard from "../components/portfolio/HoldingCard";
 import { fetchCurrentPrice } from "../services/marketData";
 import {
   addHolding,

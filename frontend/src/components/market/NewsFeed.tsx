@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchMarketNews, type NewsArticle } from "../services/marketOverview";
+import { fetchMarketNews, type NewsArticle } from "../../services/marketOverview";
 
 const SENTIMENT_BADGE: Record<string, string> = {
   Bullish: "bg-t-green-bg text-t-green",

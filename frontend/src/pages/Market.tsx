@@ -1,14 +1,14 @@
 import { ReactNode, useState } from "react";
-import CommoditiesPanel from "../components/Commodities";
-import GlobalMarkets from "../components/GlobalMarkets";
-import MarketIndices from "../components/MarketIndices";
-import MarketMovers from "../components/MarketMovers";
-import NewsFeed from "../components/NewsFeed";
-import PairsTrading from "../components/PairsTrading";
-import SectorHeatmap from "../components/SectorHeatmap";
-import TickerSearch from "../components/TickerSearch";
-import VixGauge from "../components/VixGauge";
-import Watchlist from "../components/Watchlist";
+import CommoditiesPanel from "../components/market/Commodities";
+import GlobalMarkets from "../components/market/GlobalMarkets";
+import MarketIndices from "../components/market/MarketIndices";
+import MarketMovers from "../components/market/MarketMovers";
+import NewsFeed from "../components/market/NewsFeed";
+import PairsTrading from "../components/market/PairsTrading";
+import SectorHeatmap from "../components/market/SectorHeatmap";
+import TickerSearch from "../components/market/TickerSearch";
+import VixGauge from "../components/market/VixGauge";
+import Watchlist from "../components/market/Watchlist";
 import {
   getProvider,
   setProvider,

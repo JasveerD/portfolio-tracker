@@ -5,7 +5,7 @@ import {
   removeFromWatchlist,
   fetchTickerQuoteWithRetry,
   type TickerQuote,
-} from "../services/marketOverview";
+} from "../../services/marketOverview";
 
 export default function Watchlist() {
   const [tickers, setTickers] = useState<string[]>(() => getWatchlist());

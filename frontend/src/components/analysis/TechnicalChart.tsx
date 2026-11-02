@@ -10,7 +10,7 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { getProviderKey } from "../services/marketOverview";
+import { getProviderKey } from "../../services/marketOverview";
 
 const FINNHUB = "https://finnhub.io/api/v1";
 
