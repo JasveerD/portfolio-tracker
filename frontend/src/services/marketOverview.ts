@@ -42,6 +42,22 @@ export function setProviderKey(p: Provider, key: string) {
   }
 }
 
+export function getYahooProxyUrl(): string {
+  try {
+    return localStorage.getItem("yahoo_proxy_url") || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setYahooProxyUrl(url: string) {
+  try {
+    localStorage.setItem("yahoo_proxy_url", url);
+  } catch {
+    // ignore
+  }
+}
+
 export function needsDelay(): boolean {
   return getProvider() === "twelvedata" && getProviderKey("twelvedata") === "demo";
 }

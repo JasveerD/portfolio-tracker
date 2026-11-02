@@ -14,6 +14,8 @@ import {
   setProvider,
   getProviderKey,
   setProviderKey,
+  getYahooProxyUrl,
+  setYahooProxyUrl,
   needsDelay,
   type Provider,
 } from "../services/marketOverview";
@@ -72,6 +74,7 @@ export default function Market() {
   const [showSettings, setShowSettings] = useState(false);
   const [provider, setProviderState] = useState<Provider>(() => getProvider());
   const [key, setKey] = useState(() => getProviderKey(provider));
+  const [yahooUrl, setYahooUrl] = useState(() => getYahooProxyUrl());
   const [indicesDone, setIndicesDone] = useState(false);
   const [commoditiesDone, setCommoditiesDone] = useState(false);
   const [globalDone, setGlobalDone] = useState(false);
@@ -86,6 +89,7 @@ export default function Market() {
   function handleSave() {
     setProvider(provider);
     setProviderKey(provider, key);
+    setYahooProxyUrl(yahooUrl.trim());
     sessionStorage.clear();
     setShowSettings(false);
     window.location.reload();
@@ -192,6 +196,28 @@ export default function Market() {
                 SAVE & RELOAD
               </button>
             </div>
+          </div>
+
+          <div className="pt-2 border-t border-t-border space-y-2">
+            <label className="block text-[10px] text-t-muted tracking-wider uppercase">
+              Yahoo Finance Proxy (optional)
+            </label>
+            <p className="text-[10px] text-t-muted">
+              Free, no API key, covers every ticker. Deploy the included
+              Cloudflare Worker (see <span className="text-t-text">worker/</span> folder) and paste the URL.
+            </p>
+            <input
+              type="text"
+              value={yahooUrl}
+              onChange={(e) => setYahooUrl(e.target.value)}
+              placeholder="https://your-worker.your-name.workers.dev"
+              className="w-full px-3 py-1.5 rounded border border-t-border bg-t-input text-sm focus:outline-none focus:border-t-accent"
+            />
+            {yahooUrl.trim() && (
+              <p className="text-[10px] text-t-green">
+                Yahoo Finance is active — it will be tried first for all price data.
+              </p>
+            )}
           </div>
 
           <div className="pt-2 border-t border-t-border">

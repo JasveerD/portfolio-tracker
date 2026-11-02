@@ -1,5 +1,5 @@
 import type { PricePoint } from "../types";
-import { getProvider, getProviderKey } from "./marketOverview";
+import { getProvider, getProviderKey, getYahooProxyUrl } from "./marketOverview";
 
 const TWELVE_DATA = "https://api.twelvedata.com";
 const FINNHUB = "https://finnhub.io/api/v1";
@@ -24,7 +24,6 @@ function setCache<T>(key: string, data: T): void {
   try {
     sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
   } catch {
-    // storage full — clear old backtest entries and retry
     try {
       for (let i = sessionStorage.length - 1; i >= 0; i--) {
         const k = sessionStorage.key(i);
@@ -36,6 +35,74 @@ function setCache<T>(key: string, data: T): void {
     }
   }
 }
+
+// ── Yahoo Finance (via proxy) ───────────────────────────────
+
+async function fetchYahooHistory(
+  ticker: string,
+  startDate: string,
+  endDate: string
+): Promise<PricePoint[]> {
+  const proxyUrl = getYahooProxyUrl();
+  if (!proxyUrl) throw new Error("no_yahoo_proxy");
+
+  const period1 = Math.floor(new Date(startDate).getTime() / 1000);
+  const period2 = Math.floor(new Date(endDate).getTime() / 1000);
+  const yahooPath = `/v8/finance/chart/${ticker.toUpperCase()}?period1=${period1}&period2=${period2}&interval=1d`;
+
+  const base = proxyUrl.endsWith("/") ? proxyUrl.slice(0, -1) : proxyUrl;
+  const res = await fetch(`${base}${yahooPath}`, {
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!res.ok) throw new Error(`Yahoo proxy ${res.status}`);
+
+  const json = await res.json();
+  const result = json?.chart?.result?.[0];
+  if (!result?.timestamp?.length) throw new Error("No Yahoo data");
+
+  const ts: number[] = result.timestamp;
+  const q = result.indicators?.quote?.[0];
+  if (!q) throw new Error("No Yahoo quote data");
+
+  const points: PricePoint[] = [];
+  for (let i = 0; i < ts.length; i++) {
+    if (q.close[i] == null) continue;
+    points.push({
+      date: new Date(ts[i] * 1000).toISOString().slice(0, 10),
+      open: q.open[i] ?? q.close[i],
+      high: q.high[i] ?? q.close[i],
+      low: q.low[i] ?? q.close[i],
+      close: q.close[i],
+      volume: q.volume[i] ?? 0,
+    });
+  }
+  if (points.length === 0) throw new Error("No Yahoo price points");
+  return points;
+}
+
+async function fetchYahooCurrentPrice(
+  ticker: string
+): Promise<number | null> {
+  const proxyUrl = getYahooProxyUrl();
+  if (!proxyUrl) return null;
+
+  try {
+    const base = proxyUrl.endsWith("/") ? proxyUrl.slice(0, -1) : proxyUrl;
+    const res = await fetch(
+      `${base}/v8/finance/chart/${ticker.toUpperCase()}?range=1d&interval=1d`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return typeof price === "number" && price > 0 ? price : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Twelve Data ─────────────────────────────────────────────
 
 interface TwelveDataResponse {
   status: string;
@@ -101,13 +168,14 @@ async function fetchTwelveData(
     return await fetchTwelveDataWithKey(ticker, startDate, endDate, key);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
-    // If user's custom key fails with auth error, retry with demo
     if (key !== "demo" && (msg.includes("401") || msg.includes("403"))) {
       return await fetchTwelveDataWithKey(ticker, startDate, endDate, "demo");
     }
     throw e;
   }
 }
+
+// ── Finnhub ─────────────────────────────────────────────────
 
 async function fetchFinnhubCandles(
   ticker: string,
@@ -141,6 +209,8 @@ async function fetchFinnhubCandles(
   return points;
 }
 
+// ── Public API ───────────────────────────────────────────────
+
 export async function fetchPriceHistory(
   ticker: string,
   period1: string,
@@ -150,10 +220,22 @@ export async function fetchPriceHistory(
   const cached = getCached<PricePoint[]>(cacheKey);
   if (cached) return cached;
 
-  const provider = getProvider();
   const errors: string[] = [];
 
-  // Try the user's configured provider first
+  // Yahoo Finance first — free, no key, covers everything
+  try {
+    const pts = await fetchYahooHistory(ticker, period1, period2);
+    setCache(cacheKey, pts);
+    return pts;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "failed";
+    if (msg !== "no_yahoo_proxy") {
+      errors.push(`Yahoo: ${msg}`);
+    }
+  }
+
+  // Then the user's configured provider
+  const provider = getProvider();
   if (provider === "finnhub") {
     try {
       const pts = await fetchFinnhubCandles(ticker, period1, period2);
@@ -162,7 +244,6 @@ export async function fetchPriceHistory(
     } catch (e) {
       errors.push(`Finnhub: ${e instanceof Error ? e.message : "failed"}`);
     }
-    // Fallback to Twelve Data
     try {
       const pts = await fetchTwelveData(ticker, period1, period2);
       setCache(cacheKey, pts);
@@ -178,7 +259,6 @@ export async function fetchPriceHistory(
     } catch (e) {
       errors.push(`Twelve Data: ${e instanceof Error ? e.message : "failed"}`);
     }
-    // Fallback to Finnhub if key exists
     const fKey = getProviderKey("finnhub");
     if (fKey) {
       try {
@@ -194,12 +274,12 @@ export async function fetchPriceHistory(
   const isDemoLimit = errors.some((e) => e.includes("demo_limit"));
   if (isDemoLimit) {
     throw new Error(
-      `The demo API key doesn't support ${ticker}. Get a free API key at twelvedata.com or finnhub.io and add it in Market → API Settings.`
+      `The demo API key doesn't support ${ticker}. Set up Yahoo Finance proxy in Market → API Settings, or get a free key at twelvedata.com / finnhub.io.`
     );
   }
 
   throw new Error(
-    `Could not fetch price data for ${ticker}. ${errors.join(" | ")}. Check your API key in Market → API Settings.`
+    `Could not fetch price data for ${ticker}. ${errors.join(" | ")}. Check API Settings.`
   );
 }
 
@@ -209,6 +289,13 @@ export async function fetchCurrentPrice(
   const cacheKey = `price_${ticker}`;
   const cached = getCached<number>(cacheKey);
   if (cached !== null) return cached;
+
+  // Yahoo first
+  const yahooPrice = await fetchYahooCurrentPrice(ticker);
+  if (yahooPrice !== null) {
+    setCache(cacheKey, yahooPrice);
+    return yahooPrice;
+  }
 
   const provider = getProvider();
 
@@ -231,7 +318,6 @@ export async function fetchCurrentPrice(
     }
   }
 
-  // Twelve Data quote — try user key then demo
   for (const tdKey of [...new Set([getProviderKey("twelvedata"), "demo"])]) {
     try {
       const url = `${TWELVE_DATA}/price?symbol=${ticker.toUpperCase()}&apikey=${tdKey}`;
@@ -251,7 +337,6 @@ export async function fetchCurrentPrice(
     }
   }
 
-  // Finnhub fallback if not already tried
   if (provider !== "finnhub") {
     try {
       const key = getProviderKey("finnhub");
