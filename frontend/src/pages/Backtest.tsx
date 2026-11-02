@@ -5,6 +5,7 @@ import MetricsPanel from "../components/MetricsPanel";
 import KellyCriterion from "../components/KellyCriterion";
 import MonteCarloVaR from "../components/MonteCarloVaR";
 import RiskMetrics from "../components/RiskMetrics";
+import ScenarioTesting from "../components/ScenarioTesting";
 import StrategyForm from "../components/StrategyForm";
 import TradeLog from "../components/TradeLog";
 import { runBacktest } from "../services/backtestEngine";
@@ -74,6 +75,7 @@ export default function Backtest() {
             initialCapital={capital}
           />
           <KellyCriterion />
+          <ScenarioTesting />
           <TradeLog trades={result.trades} />
         </div>
       )}
