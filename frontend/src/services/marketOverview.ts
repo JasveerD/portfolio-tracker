@@ -283,6 +283,142 @@ export async function fetchMarketNews(): Promise<NewsArticle[]> {
 }
 
 
+export const POPULAR_STOCKS = [
+  { ticker: "AAPL", name: "Apple" },
+  { ticker: "MSFT", name: "Microsoft" },
+  { ticker: "GOOGL", name: "Alphabet" },
+  { ticker: "AMZN", name: "Amazon" },
+  { ticker: "NVDA", name: "NVIDIA" },
+  { ticker: "META", name: "Meta" },
+  { ticker: "TSLA", name: "Tesla" },
+  { ticker: "JPM", name: "JPMorgan" },
+  { ticker: "V", name: "Visa" },
+  { ticker: "BAC", name: "BofA" },
+];
+
+export async function fetchVixData(): Promise<TickerQuote | null> {
+  const cacheKey = "mkt_VIX";
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const tdKey = getProviderKey("twelvedata") || "demo";
+    const quote = await fetchTwelveDataQuote("VIX", "CBOE VIX", tdKey);
+    setCache(cacheKey, quote);
+    return quote;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchSparklineData(ticker: string): Promise<number[]> {
+  const cacheKey = `spark_${ticker}`;
+  try {
+    const raw = sessionStorage.getItem(cacheKey);
+    if (raw) {
+      const { data, ts } = JSON.parse(raw);
+      if (Date.now() - ts < CACHE_TTL) return data;
+    }
+  } catch {}
+
+  const finnhubKey = getProviderKey("finnhub");
+  if (!finnhubKey) return [];
+
+  try {
+    const to = Math.floor(Date.now() / 1000);
+    const from = to - 30 * 86400;
+    const url = `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${finnhubKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.s !== "ok" || !data.c) return [];
+    const closes: number[] = data.c;
+    try {
+      sessionStorage.setItem(
+        cacheKey,
+        JSON.stringify({ data: closes, ts: Date.now() })
+      );
+    } catch {}
+    return closes;
+  } catch {
+    return [];
+  }
+}
+
+export async function searchSymbols(
+  query: string
+): Promise<{ symbol: string; description: string }[]> {
+  if (!query.trim()) return [];
+
+  const finnhubKey = getProviderKey("finnhub");
+  if (finnhubKey) {
+    try {
+      const url = `${FINNHUB}/search?q=${encodeURIComponent(query)}&token=${finnhubKey}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.result?.length) {
+          return data.result
+            .filter((r: { symbol: string }) => !r.symbol.includes("."))
+            .slice(0, 6)
+            .map((r: { symbol: string; description: string }) => ({
+              symbol: r.symbol,
+              description: r.description,
+            }));
+        }
+      }
+    } catch {}
+  }
+
+  try {
+    const tdKey = getProviderKey("twelvedata") || "demo";
+    const url = `${TWELVE_DATA}/symbol_search?symbol=${encodeURIComponent(query)}&apikey=${tdKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.data?.length) return [];
+    return data.data
+      .filter(
+        (r: { instrument_type: string }) =>
+          r.instrument_type === "Common Stock"
+      )
+      .slice(0, 6)
+      .map((r: { symbol: string; instrument_name: string }) => ({
+        symbol: r.symbol,
+        description: r.instrument_name,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export function getWatchlist(): string[] {
+  try {
+    const raw = localStorage.getItem("watchlist");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function addToWatchlist(ticker: string) {
+  const list = getWatchlist();
+  const t = ticker.toUpperCase().trim();
+  if (t && !list.includes(t)) {
+    list.push(t);
+    try {
+      localStorage.setItem("watchlist", JSON.stringify(list));
+    } catch {}
+  }
+}
+
+export function removeFromWatchlist(ticker: string) {
+  const list = getWatchlist().filter((t) => t !== ticker.toUpperCase());
+  try {
+    localStorage.setItem("watchlist", JSON.stringify(list));
+  } catch {}
+}
+
 export async function fetchSectorHistory(
   ticker: string
 ): Promise<PricePoint[]> {
