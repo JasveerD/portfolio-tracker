@@ -1,18 +1,44 @@
-import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import Backtest from "./pages/Backtest";
 import Dashboard from "./pages/Dashboard";
 import Market from "./pages/Market";
 import Portfolio from "./pages/Portfolio";
 
 const NAV = [
-  { path: "/", label: "DASH" },
-  { path: "/portfolio", label: "PORT" },
-  { path: "/backtest", label: "BACK" },
-  { path: "/market", label: "MKT" },
+  { path: "/", label: "DASH", key: "1" },
+  { path: "/portfolio", label: "PORT", key: "2" },
+  { path: "/backtest", label: "BACK", key: "3" },
+  { path: "/market", label: "MKT", key: "4" },
 ];
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const nav = NAV.find((n) => n.key === e.key);
+      if (nav) {
+        e.preventDefault();
+        navigate(nav.path);
+        return;
+      }
+      if (e.key === "/") {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>(
+          'input[placeholder*="SEARCH"]'
+        );
+        searchInput?.focus();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen">
@@ -32,6 +58,7 @@ export default function App() {
                     : "text-t-muted hover:text-t-text hover:bg-t-input"
                 }`}
               >
+                <span className="text-[9px] opacity-40 mr-1">{n.key}</span>
                 {n.label}
               </Link>
             ))}
