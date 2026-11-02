@@ -50,10 +50,12 @@ export default function Backtest() {
   };
 
   return (
-    <div className="space-y-5">
-      <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
-        Strategy Backtester
-      </h2>
+    <div className="space-y-3">
+      <div className="bg-t-accent px-3 py-1">
+        <h2 className="text-[11px] font-bold text-black tracking-widest uppercase">
+          Strategy Backtester
+        </h2>
+      </div>
       <StrategyForm onSubmit={handleSubmit} loading={loading} />
 
       {error && (

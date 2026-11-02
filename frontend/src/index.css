@@ -5,25 +5,24 @@
 @layer base {
   * {
     scrollbar-width: thin;
-    scrollbar-color: #2a3142 transparent;
+    scrollbar-color: #333 #000;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
 
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: #000;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #2a3142;
-    border-radius: 3px;
+    background: #333;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #3a4152;
+    background: #555;
   }
 
   input,
@@ -33,7 +32,41 @@
   }
 
   ::selection {
-    background: rgba(240, 160, 48, 0.3);
-    color: #e6edf3;
+    background: rgba(255, 136, 0, 0.4);
+    color: #fff;
+  }
+
+  /* Bloomberg: kill all rounded corners globally */
+  *:not(.bb-keep-round) {
+    border-radius: 0 !important;
+  }
+
+  /* Only exception: the live pulse dot */
+  .bb-keep-round {
+    border-radius: 9999px !important;
+  }
+
+  /* Sharper borders, denser feel */
+  body {
+    background: #000;
+    letter-spacing: 0.02em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Bloomberg-style focus: amber underline, no glow */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    box-shadow: inset 0 -2px 0 #ff8800;
+  }
+
+  /* Dense table styling */
+  table {
+    border-collapse: collapse;
+  }
+
+  th, td {
+    border: 1px solid #222;
   }
 }

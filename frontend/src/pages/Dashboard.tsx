@@ -52,17 +52,25 @@ export default function Dashboard() {
   }, []);
 
   if (loading)
-    return <p className="text-t-muted p-4 text-sm">Loading...</p>;
-  if (!summary) return <p className="text-t-muted p-4 text-sm">No data</p>;
+    return (
+      <div className="p-3">
+        <span className="text-[10px] text-t-accent animate-pulse tracking-wider">LOADING DATA...</span>
+      </div>
+    );
+  if (!summary) return <p className="text-t-muted p-3 text-[10px]">NO DATA</p>;
   if (summary.allocations.length === 0)
     return (
-      <div className="space-y-4">
-        <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
-          Dashboard
-        </h2>
-        <p className="text-t-muted text-sm">
-          No holdings yet. Add some in the PORT tab to see your dashboard.
-        </p>
+      <div className="space-y-3">
+        <div className="bg-t-accent px-3 py-1">
+          <h2 className="text-[11px] font-bold text-black tracking-widest uppercase">
+            Dashboard
+          </h2>
+        </div>
+        <div className="border border-t-border p-3">
+          <p className="text-t-muted text-[11px]">
+            NO HOLDINGS. ADD POSITIONS IN <span className="text-t-accent">F2 PORT</span> TO VIEW DASHBOARD.
+          </p>
+        </div>
       </div>
     );
 
@@ -72,44 +80,46 @@ export default function Dashboard() {
     summary.total_pnl >= 0 ? "bg-t-green-bg" : "bg-t-red-bg";
 
   return (
-    <div className="space-y-5">
-      <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
-        Dashboard
-      </h2>
+    <div className="space-y-3">
+      <div className="bg-t-accent px-3 py-1">
+        <h2 className="text-[11px] font-bold text-black tracking-widest uppercase">
+          Dashboard
+        </h2>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="bg-t-panel border border-t-border rounded p-4">
-          <p className="text-[10px] text-t-muted tracking-wider uppercase mb-1">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-t-border">
+        <div className="bg-t-panel p-3">
+          <p className="text-[9px] text-t-muted tracking-widest uppercase mb-0.5">
             Portfolio Value
           </p>
-          <p className="text-2xl font-bold">
+          <p className="text-xl font-bold text-t-text">
             $
             {summary.total_value.toLocaleString(undefined, {
               minimumFractionDigits: 2,
             })}
           </p>
         </div>
-        <div className="bg-t-panel border border-t-border rounded p-4">
-          <p className="text-[10px] text-t-muted tracking-wider uppercase mb-1">
+        <div className="bg-t-panel p-3">
+          <p className="text-[9px] text-t-muted tracking-widest uppercase mb-0.5">
             Total Cost
           </p>
-          <p className="text-2xl font-bold">
+          <p className="text-xl font-bold text-t-text">
             $
             {summary.total_cost.toLocaleString(undefined, {
               minimumFractionDigits: 2,
             })}
           </p>
         </div>
-        <div className={`bg-t-panel border border-t-border rounded p-4 ${pnlBg}`}>
-          <p className="text-[10px] text-t-muted tracking-wider uppercase mb-1">
+        <div className={`bg-t-panel p-3 ${pnlBg}`}>
+          <p className="text-[9px] text-t-muted tracking-widest uppercase mb-0.5">
             Total P&L
           </p>
-          <p className={`text-2xl font-bold ${pnlColor}`}>
+          <p className={`text-xl font-bold ${pnlColor}`}>
             {summary.total_pnl >= 0 ? "+" : ""}$
             {summary.total_pnl.toLocaleString(undefined, {
               minimumFractionDigits: 2,
             })}
-            <span className="text-sm ml-2">
+            <span className="text-xs ml-2">
               ({summary.total_pnl_pct.toFixed(2)}%)
             </span>
           </p>

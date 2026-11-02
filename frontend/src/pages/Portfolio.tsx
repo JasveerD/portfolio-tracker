@@ -61,14 +61,14 @@ export default function Portfolio() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex justify-between items-center">
-        <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
+    <div className="space-y-3">
+      <div className="flex justify-between items-center bg-t-accent px-3 py-1">
+        <h2 className="text-[11px] font-bold text-black tracking-widest uppercase">
           Holdings
         </h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-3 py-1.5 text-xs font-medium bg-t-accent text-t-bg rounded hover:brightness-110 transition-all tracking-wide"
+          className="px-2 py-0.5 text-[9px] font-bold text-black/70 hover:text-black border border-black/20 hover:border-black/40 tracking-wider"
         >
           {showForm ? "CANCEL" : "+ ADD"}
         </button>

@@ -56,14 +56,15 @@ function Section({
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 mb-2 group"
+        className="flex items-center w-full mb-2 group"
       >
-        <span className="text-[10px] text-t-muted group-hover:text-t-accent transition-colors">
+        <span className="text-[10px] text-t-accent mr-2 font-bold">
           {open ? "▼" : "▶"}
         </span>
-        <span className="text-[10px] text-t-muted tracking-wider uppercase font-semibold group-hover:text-t-accent transition-colors">
+        <span className="text-[10px] text-t-accent tracking-widest uppercase font-bold">
           {title}
         </span>
+        <span className="flex-1 ml-2 border-b border-t-border" />
       </button>
       {open && children}
     </div>
@@ -108,24 +109,24 @@ export default function Market() {
   const currentProvider = PROVIDERS.find((p) => p.value === provider)!;
 
   return (
-    <div className="space-y-4" key={refreshKey}>
-      <div className="flex items-start justify-between">
-        <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
+    <div className="space-y-3" key={refreshKey}>
+      <div className="flex items-center justify-between bg-t-accent px-3 py-1">
+        <h2 className="text-[11px] font-bold text-black tracking-widest uppercase">
           Market Overview
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             onClick={handleRefresh}
-            className="text-[10px] text-t-muted hover:text-t-green px-2 py-1 rounded border border-t-border hover:border-t-green tracking-wider uppercase"
+            className="text-[9px] text-black/70 hover:text-black px-2 py-0.5 border border-black/20 hover:border-black/40 tracking-wider uppercase font-bold"
             title="Clear cache and reload all data"
           >
             REFRESH
           </button>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="text-[10px] text-t-muted hover:text-t-accent px-2 py-1 rounded border border-t-border hover:border-t-accent tracking-wider uppercase"
+            className="text-[9px] text-black/70 hover:text-black px-2 py-0.5 border border-black/20 hover:border-black/40 tracking-wider uppercase font-bold"
           >
-            {showSettings ? "CLOSE" : "API SETTINGS"}
+            {showSettings ? "CLOSE" : "SETTINGS"}
           </button>
         </div>
       </div>
@@ -221,13 +222,8 @@ export default function Market() {
           </div>
 
           <div className="pt-2 border-t border-t-border">
-            <p className="text-[10px] text-t-muted">
-              <span className="text-t-accent">Keyboard shortcuts:</span>{" "}
-              <span className="text-t-text">1</span> Dash{" "}
-              <span className="text-t-text">2</span> Portfolio{" "}
-              <span className="text-t-text">3</span> Backtest{" "}
-              <span className="text-t-text">4</span> Market{" "}
-              <span className="text-t-text">/</span> Search
+            <p className="text-[9px] text-t-muted tracking-wider">
+              SHORTCUTS SHOWN IN STATUS BAR BELOW
             </p>
           </div>
         </div>
