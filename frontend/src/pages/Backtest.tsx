@@ -2,7 +2,9 @@ import { useState } from "react";
 import DrawdownChart from "../components/DrawdownChart";
 import EquityCurve from "../components/EquityCurve";
 import MetricsPanel from "../components/MetricsPanel";
+import KellyCriterion from "../components/KellyCriterion";
 import MonteCarloVaR from "../components/MonteCarloVaR";
+import RiskMetrics from "../components/RiskMetrics";
 import StrategyForm from "../components/StrategyForm";
 import TradeLog from "../components/TradeLog";
 import { runBacktest } from "../services/backtestEngine";
@@ -66,10 +68,12 @@ export default function Backtest() {
             buyHold={result.buy_hold_curve}
           />
           <DrawdownChart data={result.drawdown_curve} />
+          <RiskMetrics result={result} initialCapital={capital} />
           <MonteCarloVaR
             equityCurve={result.equity_curve}
             initialCapital={capital}
           />
+          <KellyCriterion />
           <TradeLog trades={result.trades} />
         </div>
       )}
