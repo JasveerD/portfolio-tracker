@@ -19,7 +19,7 @@ export default function App() {
       <nav className="bg-t-panel border-b border-t-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 flex items-center h-11">
           <span className="font-bold text-sm text-t-accent tracking-wider mr-8">
-            PORTFOLIO<span className="text-t-muted">TRACKER</span>
+            FISHY<span className="text-t-muted">TERMINAL</span>
           </span>
           <div className="flex items-center gap-1">
             {NAV.map((n) => (
