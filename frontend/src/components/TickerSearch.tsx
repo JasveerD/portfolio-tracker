@@ -5,6 +5,7 @@ import {
   addToWatchlist,
   type TickerQuote,
 } from "../services/marketOverview";
+import TickerDetail from "./TickerDetail";
 
 export default function TickerSearch() {
   const [query, setQuery] = useState("");
@@ -122,49 +123,52 @@ export default function TickerSearch() {
       )}
 
       {selected && !loadingQuote && (
-        <div className="mt-2 bg-t-panel border border-t-border rounded p-3">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-bold text-t-accent">
-                  {selected.ticker}
-                </span>
-                <span className="text-xs text-t-muted">{selected.name}</span>
+        <>
+          <div className="mt-2 bg-t-panel border border-t-border rounded p-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold text-t-accent">
+                    {selected.ticker}
+                  </span>
+                  <span className="text-xs text-t-muted">{selected.name}</span>
+                </div>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <span className="text-xl font-bold">
+                    $
+                    {selected.price.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${selected.change >= 0 ? "text-t-green" : "text-t-red"}`}
+                  >
+                    {selected.change >= 0 ? "+" : ""}
+                    {selected.change.toFixed(2)}
+                  </span>
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded ${
+                      selected.changePct >= 0
+                        ? "bg-t-green-bg text-t-green"
+                        : "bg-t-red-bg text-t-red"
+                    }`}
+                  >
+                    {selected.changePct >= 0 ? "+" : ""}
+                    {selected.changePct.toFixed(2)}%
+                  </span>
+                </div>
               </div>
-              <div className="flex items-baseline gap-3 mt-1">
-                <span className="text-xl font-bold">
-                  $
-                  {selected.price.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
-                <span
-                  className={`text-sm font-semibold ${selected.change >= 0 ? "text-t-green" : "text-t-red"}`}
-                >
-                  {selected.change >= 0 ? "+" : ""}
-                  {selected.change.toFixed(2)}
-                </span>
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded ${
-                    selected.changePct >= 0
-                      ? "bg-t-green-bg text-t-green"
-                      : "bg-t-red-bg text-t-red"
-                  }`}
-                >
-                  {selected.changePct >= 0 ? "+" : ""}
-                  {selected.changePct.toFixed(2)}%
-                </span>
-              </div>
+              <button
+                onClick={handleAddToWatchlist}
+                disabled={added}
+                className="text-[10px] text-t-muted hover:text-t-accent border border-t-border hover:border-t-accent px-2 py-1 rounded tracking-wider uppercase disabled:opacity-50"
+              >
+                {added ? "ADDED" : "+ WATCH"}
+              </button>
             </div>
-            <button
-              onClick={handleAddToWatchlist}
-              disabled={added}
-              className="text-[10px] text-t-muted hover:text-t-accent border border-t-border hover:border-t-accent px-2 py-1 rounded tracking-wider uppercase disabled:opacity-50"
-            >
-              {added ? "ADDED" : "+ WATCH"}
-            </button>
           </div>
-        </div>
+          <TickerDetail ticker={selected.ticker} />
+        </>
       )}
     </div>
   );
