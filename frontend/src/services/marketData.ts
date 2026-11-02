@@ -1,9 +1,41 @@
 import type { PricePoint } from "../types";
+import { getProvider, getProviderKey } from "./marketOverview";
 
 const TWELVE_DATA = "https://api.twelvedata.com";
-const TWELVE_KEY = "demo";
-const YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/";
-const ALLORIGINS = "https://api.allorigins.win/get?url=";
+const FINNHUB = "https://finnhub.io/api/v1";
+const CACHE_TTL = 30 * 60 * 1000;
+
+function getCached<T>(key: string): T | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) {
+      sessionStorage.removeItem(key);
+      return null;
+    }
+    return data as T;
+  } catch {
+    return null;
+  }
+}
+
+function setCache<T>(key: string, data: T): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
+  } catch {
+    // storage full — clear old backtest entries and retry
+    try {
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const k = sessionStorage.key(i);
+        if (k?.startsWith("bt_")) sessionStorage.removeItem(k);
+      }
+      sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
+    } catch {
+      // give up
+    }
+  }
+}
 
 interface TwelveDataResponse {
   status: string;
@@ -18,25 +50,10 @@ interface TwelveDataResponse {
   message?: string;
 }
 
-interface YahooChartResponse {
-  chart: {
-    result: {
-      timestamp: number[];
-      indicators: {
-        quote: {
-          open: number[];
-          high: number[];
-          low: number[];
-          close: number[];
-          volume: number[];
-        }[];
-      };
-    }[];
-    error: { code: string; description: string } | null;
-  };
-}
-
-function parseTwelveData(data: TwelveDataResponse, ticker: string): PricePoint[] {
+function parseTwelveData(
+  data: TwelveDataResponse,
+  ticker: string
+): PricePoint[] {
   if (data.status !== "ok" || !data.values?.length)
     throw new Error(data.message || `No data for ${ticker}`);
 
@@ -57,51 +74,41 @@ async function fetchTwelveData(
   startDate: string,
   endDate: string
 ): Promise<PricePoint[]> {
-  const url = `${TWELVE_DATA}/time_series?symbol=${ticker.toUpperCase()}&interval=1day&start_date=${startDate}&end_date=${endDate}&apikey=${TWELVE_KEY}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const key = getProviderKey("twelvedata");
+  const url = `${TWELVE_DATA}/time_series?symbol=${ticker.toUpperCase()}&interval=1day&start_date=${startDate}&end_date=${endDate}&apikey=${key}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
   if (!res.ok) throw new Error(`Twelve Data returned ${res.status}`);
   const data: TwelveDataResponse = await res.json();
   return parseTwelveData(data, ticker);
 }
 
-async function fetchTwelveDataRecent(
+async function fetchFinnhubCandles(
   ticker: string,
-  count: number
+  startDate: string,
+  endDate: string
 ): Promise<PricePoint[]> {
-  const url = `${TWELVE_DATA}/time_series?symbol=${ticker.toUpperCase()}&interval=1day&outputsize=${count}&apikey=${TWELVE_KEY}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`Twelve Data returned ${res.status}`);
-  const data: TwelveDataResponse = await res.json();
-  return parseTwelveData(data, ticker);
-}
+  const key = getProviderKey("finnhub");
+  if (!key) throw new Error("No Finnhub API key configured");
 
-async function fetchYahooViaProxy(url: string): Promise<YahooChartResponse> {
-  const proxyUrl = `${ALLORIGINS}${encodeURIComponent(url)}`;
-  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
-  const wrapper = await res.json();
-  if (!wrapper.contents) throw new Error("Empty response from proxy");
-  return JSON.parse(wrapper.contents);
-}
+  const from = Math.floor(new Date(startDate).getTime() / 1000);
+  const to = Math.floor(new Date(endDate).getTime() / 1000);
+  const url = `${FINNHUB}/stock/candle?symbol=${ticker.toUpperCase()}&resolution=D&from=${from}&to=${to}&token=${key}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  if (!res.ok) throw new Error(`Finnhub returned ${res.status}`);
 
-function parseYahooResponse(data: YahooChartResponse, ticker: string): PricePoint[] {
-  if (data.chart.error) throw new Error(data.chart.error.description);
-  if (!data.chart.result?.length) throw new Error(`No data for ${ticker}`);
-
-  const result = data.chart.result[0];
-  const { timestamp, indicators } = result;
-  const quote = indicators.quote[0];
+  const data = await res.json();
+  if (data.s !== "ok" || !data.c?.length)
+    throw new Error(`No candle data for ${ticker}`);
 
   const points: PricePoint[] = [];
-  for (let i = 0; i < timestamp.length; i++) {
-    if (quote.close[i] == null) continue;
+  for (let i = 0; i < data.c.length; i++) {
     points.push({
-      date: new Date(timestamp[i] * 1000).toISOString().slice(0, 10),
-      open: quote.open[i] ?? 0,
-      high: quote.high[i] ?? 0,
-      low: quote.low[i] ?? 0,
-      close: quote.close[i],
-      volume: quote.volume[i] ?? 0,
+      date: new Date(data.t[i] * 1000).toISOString().slice(0, 10),
+      open: data.o[i],
+      high: data.h[i],
+      low: data.l[i],
+      close: data.c[i],
+      volume: data.v[i],
     });
   }
   return points;
@@ -112,41 +119,122 @@ export async function fetchPriceHistory(
   period1: string,
   period2: string
 ): Promise<PricePoint[]> {
-  try {
-    return await fetchTwelveData(ticker, period1, period2);
-  } catch {
-    // Fallback: Yahoo via allorigins proxy
+  const cacheKey = `bt_${ticker}_${period1}_${period2}`;
+  const cached = getCached<PricePoint[]>(cacheKey);
+  if (cached) return cached;
+
+  const provider = getProvider();
+  const errors: string[] = [];
+
+  // Try the user's configured provider first
+  if (provider === "finnhub") {
+    try {
+      const pts = await fetchFinnhubCandles(ticker, period1, period2);
+      setCache(cacheKey, pts);
+      return pts;
+    } catch (e) {
+      errors.push(`Finnhub: ${e instanceof Error ? e.message : "failed"}`);
+    }
+    // Fallback to Twelve Data
+    try {
+      const pts = await fetchTwelveData(ticker, period1, period2);
+      setCache(cacheKey, pts);
+      return pts;
+    } catch (e) {
+      errors.push(`Twelve Data: ${e instanceof Error ? e.message : "failed"}`);
+    }
+  } else {
+    try {
+      const pts = await fetchTwelveData(ticker, period1, period2);
+      setCache(cacheKey, pts);
+      return pts;
+    } catch (e) {
+      errors.push(`Twelve Data: ${e instanceof Error ? e.message : "failed"}`);
+    }
+    // Fallback to Finnhub if key exists
+    const fKey = getProviderKey("finnhub");
+    if (fKey) {
+      try {
+        const pts = await fetchFinnhubCandles(ticker, period1, period2);
+        setCache(cacheKey, pts);
+        return pts;
+      } catch (e) {
+        errors.push(`Finnhub: ${e instanceof Error ? e.message : "failed"}`);
+      }
+    }
   }
 
-  const p1 = Math.floor(new Date(period1).getTime() / 1000);
-  const p2 = Math.floor(new Date(period2).getTime() / 1000);
-  const url = `${YAHOO_CHART}${ticker.toUpperCase()}?period1=${p1}&period2=${p2}&interval=1d`;
-  const data = await fetchYahooViaProxy(url);
-  return parseYahooResponse(data, ticker);
+  throw new Error(
+    `Could not fetch price data for ${ticker}. ${errors.join(" | ")}. Check your API key in Market → API Settings.`
+  );
 }
 
 export async function fetchCurrentPrice(
   ticker: string
 ): Promise<number | null> {
-  try {
-    const points = await fetchTwelveDataRecent(ticker, 5);
-    if (points.length > 0) return points[points.length - 1].close;
-  } catch {
-    // Fallback below
+  const cacheKey = `price_${ticker}`;
+  const cached = getCached<number>(cacheKey);
+  if (cached !== null) return cached;
+
+  const provider = getProvider();
+
+  if (provider === "finnhub") {
+    try {
+      const key = getProviderKey("finnhub");
+      if (key) {
+        const url = `${FINNHUB}/quote?symbol=${ticker.toUpperCase()}&token=${key}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.c && data.c > 0) {
+            setCache(cacheKey, data.c);
+            return data.c;
+          }
+        }
+      }
+    } catch {
+      // fallback below
+    }
   }
 
+  // Twelve Data quote
   try {
-    const now = Math.floor(Date.now() / 1000);
-    const fiveDaysAgo = now - 5 * 86400;
-    const url = `${YAHOO_CHART}${ticker.toUpperCase()}?period1=${fiveDaysAgo}&period2=${now}&interval=1d`;
-    const data = await fetchYahooViaProxy(url);
-    if (!data.chart.result?.length) return null;
-    const quote = data.chart.result[0].indicators.quote[0];
-    const closes = quote.close.filter((c) => c != null);
-    return closes.length > 0 ? closes[closes.length - 1] : null;
+    const key = getProviderKey("twelvedata");
+    const url = `${TWELVE_DATA}/price?symbol=${ticker.toUpperCase()}&apikey=${key}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.price) {
+        const price = parseFloat(data.price);
+        setCache(cacheKey, price);
+        return price;
+      }
+    }
   } catch {
-    return null;
+    // fallback below
   }
+
+  // Finnhub fallback if not already tried
+  if (provider !== "finnhub") {
+    try {
+      const key = getProviderKey("finnhub");
+      if (key) {
+        const url = `${FINNHUB}/quote?symbol=${ticker.toUpperCase()}&token=${key}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.c && data.c > 0) {
+            setCache(cacheKey, data.c);
+            return data.c;
+          }
+        }
+      }
+    } catch {
+      // give up
+    }
+  }
+
+  return null;
 }
 
 const PERIOD_DAYS: Record<string, number> = {

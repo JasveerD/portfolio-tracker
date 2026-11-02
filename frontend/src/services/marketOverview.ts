@@ -48,6 +48,8 @@ export function needsDelay(): boolean {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const inflightQuotes = new Map<string, Promise<TickerQuote>>();
+
 export interface TickerQuote {
   ticker: string;
   name: string;
@@ -304,18 +306,27 @@ export async function fetchTickerQuote(
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const provider = getProvider();
-  const apiKey = getProviderKey(provider);
+  const existing = inflightQuotes.get(ticker);
+  if (existing) return existing;
 
-  let quote: TickerQuote;
-  if (provider === "finnhub" && apiKey) {
-    quote = await fetchFinnhubQuote(ticker, name, apiKey);
-  } else {
-    quote = await fetchTwelveDataQuote(ticker, name, apiKey || "demo");
-  }
+  const promise = (async () => {
+    const provider = getProvider();
+    const apiKey = getProviderKey(provider);
 
-  setCache(cacheKey, quote);
-  return quote;
+    let quote: TickerQuote;
+    if (provider === "finnhub" && apiKey) {
+      quote = await fetchFinnhubQuote(ticker, name, apiKey);
+    } else {
+      quote = await fetchTwelveDataQuote(ticker, name, apiKey || "demo");
+    }
+
+    setCache(cacheKey, quote);
+    return quote;
+  })();
+
+  inflightQuotes.set(ticker, promise);
+  promise.finally(() => inflightQuotes.delete(ticker));
+  return promise;
 }
 
 export async function fetchTickerQuoteWithRetry(
@@ -671,6 +682,31 @@ export async function fetchStockMetrics(
 export async function fetchSectorHistory(
   ticker: string
 ): Promise<PricePoint[]> {
+  const finnhubKey = getProviderKey("finnhub");
+  if (finnhubKey) {
+    try {
+      const to = Math.floor(Date.now() / 1000);
+      const from = to - 90 * 86400;
+      const url = `${FINNHUB}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${finnhubKey}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.s === "ok" && data.c?.length) {
+          return data.c.map((_: number, i: number) => ({
+            date: new Date(data.t[i] * 1000).toISOString().slice(0, 10),
+            open: data.o[i],
+            high: data.h[i],
+            low: data.l[i],
+            close: data.c[i],
+            volume: data.v[i],
+          }));
+        }
+      }
+    } catch {
+      // fall through to Twelve Data
+    }
+  }
+
   const apiKey = getProviderKey("twelvedata");
   const end = new Date();
   const start = new Date(end.getTime() - 90 * 86400000);
