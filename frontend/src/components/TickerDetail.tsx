@@ -9,6 +9,8 @@ import {
   type InsiderTrade,
   type StockMetrics,
 } from "../services/marketOverview";
+import RelativeStrength from "./RelativeStrength";
+import RollingPerformance from "./RollingPerformance";
 import TechnicalChart from "./TechnicalChart";
 
 interface Props {
@@ -28,7 +30,7 @@ export default function TickerDetail({ ticker }: Props) {
   const [metrics, setMetrics] = useState<StockMetrics | null>(null);
   const [sparkline, setSparkline] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"overview" | "technicals" | "insiders">("overview");
+  const [tab, setTab] = useState<"overview" | "technicals" | "rolling" | "relative" | "insiders">("overview");
   const hasFinnhub = !!getProviderKey("finnhub");
 
   useEffect(() => {
@@ -113,6 +115,30 @@ export default function TickerDetail({ ticker }: Props) {
             Technicals
           </button>
         )}
+        {hasFinnhub && (
+          <button
+            onClick={() => setTab("rolling")}
+            className={`text-[10px] tracking-wider uppercase px-2 py-0.5 rounded ${
+              tab === "rolling"
+                ? "bg-t-accent-bg text-t-accent"
+                : "text-t-muted hover:text-t-text"
+            }`}
+          >
+            Rolling
+          </button>
+        )}
+        {hasFinnhub && (
+          <button
+            onClick={() => setTab("relative")}
+            className={`text-[10px] tracking-wider uppercase px-2 py-0.5 rounded ${
+              tab === "relative"
+                ? "bg-t-accent-bg text-t-accent"
+                : "text-t-muted hover:text-t-text"
+            }`}
+          >
+            Rel Str
+          </button>
+        )}
         {insiders.length > 0 && (
           <button
             onClick={() => setTab("insiders")}
@@ -122,7 +148,7 @@ export default function TickerDetail({ ticker }: Props) {
                 : "text-t-muted hover:text-t-text"
             }`}
           >
-            Insider Trades ({insiders.length})
+            Insiders ({insiders.length})
           </button>
         )}
       </div>
@@ -254,6 +280,10 @@ export default function TickerDetail({ ticker }: Props) {
       )}
 
       {tab === "technicals" && <TechnicalChart ticker={ticker} />}
+
+      {tab === "rolling" && <RollingPerformance ticker={ticker} />}
+
+      {tab === "relative" && <RelativeStrength ticker={ticker} />}
 
       {tab === "insiders" && insiders.length > 0 && (
         <div className="overflow-x-auto">
