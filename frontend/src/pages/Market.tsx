@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import CommoditiesPanel from "../components/Commodities";
 import GlobalMarkets from "../components/GlobalMarkets";
 import MarketIndices from "../components/MarketIndices";
@@ -39,6 +39,34 @@ const PROVIDERS: {
   },
 ];
 
+function Section({
+  title,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 mb-2 group"
+      >
+        <span className="text-[10px] text-t-muted group-hover:text-t-accent transition-colors">
+          {open ? "▼" : "▶"}
+        </span>
+        <span className="text-[10px] text-t-muted tracking-wider uppercase font-semibold group-hover:text-t-accent transition-colors">
+          {title}
+        </span>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 export default function Market() {
   const [showSettings, setShowSettings] = useState(false);
   const [provider, setProviderState] = useState<Provider>(() => getProvider());
@@ -47,6 +75,7 @@ export default function Market() {
   const [commoditiesDone, setCommoditiesDone] = useState(false);
   const [globalDone, setGlobalDone] = useState(false);
   const [sectorsDone, setSectorsDone] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   function handleProviderChange(p: Provider) {
     setProviderState(p);
@@ -61,21 +90,39 @@ export default function Market() {
     window.location.reload();
   }
 
+  function handleRefresh() {
+    sessionStorage.clear();
+    setIndicesDone(false);
+    setCommoditiesDone(false);
+    setGlobalDone(false);
+    setSectorsDone(false);
+    setRefreshKey((k) => k + 1);
+  }
+
   const slow = needsDelay();
   const currentProvider = PROVIDERS.find((p) => p.value === provider)!;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" key={refreshKey}>
       <div className="flex items-start justify-between">
         <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
           Market Overview
         </h2>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="text-[10px] text-t-muted hover:text-t-accent px-2 py-1 rounded border border-t-border hover:border-t-accent tracking-wider uppercase"
-        >
-          {showSettings ? "CLOSE" : "API SETTINGS"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            className="text-[10px] text-t-muted hover:text-t-green px-2 py-1 rounded border border-t-border hover:border-t-green tracking-wider uppercase"
+            title="Clear cache and reload all data"
+          >
+            REFRESH
+          </button>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="text-[10px] text-t-muted hover:text-t-accent px-2 py-1 rounded border border-t-border hover:border-t-accent tracking-wider uppercase"
+          >
+            {showSettings ? "CLOSE" : "API SETTINGS"}
+          </button>
+        </div>
       </div>
 
       {showSettings && (
@@ -145,6 +192,17 @@ export default function Market() {
               </button>
             </div>
           </div>
+
+          <div className="pt-2 border-t border-t-border">
+            <p className="text-[10px] text-t-muted">
+              <span className="text-t-accent">Keyboard shortcuts:</span>{" "}
+              <span className="text-t-text">1</span> Dash{" "}
+              <span className="text-t-text">2</span> Portfolio{" "}
+              <span className="text-t-text">3</span> Backtest{" "}
+              <span className="text-t-text">4</span> Market{" "}
+              <span className="text-t-text">/</span> Search
+            </p>
+          </div>
         </div>
       )}
 
@@ -157,34 +215,46 @@ export default function Market() {
 
       <TickerSearch />
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-        <VixGauge />
-        <div className="lg:col-span-4">
-          <MarketIndices onDone={() => setIndicesDone(true)} />
+      <Section title="Indices & VIX">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+          <VixGauge />
+          <div className="lg:col-span-4">
+            <MarketIndices onDone={() => setIndicesDone(true)} />
+          </div>
         </div>
-      </div>
+      </Section>
 
-      <CommoditiesPanel
-        startLoading={slow ? indicesDone : true}
-        onDone={() => setCommoditiesDone(true)}
-      />
-
-      <GlobalMarkets
-        startLoading={slow ? commoditiesDone : true}
-        onDone={() => setGlobalDone(true)}
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SectorHeatmap
-          startLoading={slow ? globalDone : true}
-          onDone={() => setSectorsDone(true)}
+      <Section title="Commodities">
+        <CommoditiesPanel
+          startLoading={slow ? indicesDone : true}
+          onDone={() => setCommoditiesDone(true)}
         />
-        <MarketMovers startLoading={slow ? sectorsDone : indicesDone} />
-      </div>
+      </Section>
 
-      <Watchlist />
+      <Section title="Global Markets">
+        <GlobalMarkets
+          startLoading={slow ? commoditiesDone : true}
+          onDone={() => setGlobalDone(true)}
+        />
+      </Section>
 
-      <NewsFeed />
+      <Section title="Sectors & Movers">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <SectorHeatmap
+            startLoading={slow ? globalDone : true}
+            onDone={() => setSectorsDone(true)}
+          />
+          <MarketMovers startLoading={slow ? sectorsDone : indicesDone} />
+        </div>
+      </Section>
+
+      <Section title="Watchlist">
+        <Watchlist />
+      </Section>
+
+      <Section title="Financial News">
+        <NewsFeed />
+      </Section>
     </div>
   );
 }
