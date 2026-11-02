@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DrawdownChart from "../components/DrawdownChart";
+import EfficientFrontier from "../components/EfficientFrontier";
 import EquityCurve from "../components/EquityCurve";
 import MetricsPanel from "../components/MetricsPanel";
 import KellyCriterion from "../components/KellyCriterion";
@@ -75,6 +76,11 @@ export default function Backtest() {
             initialCapital={capital}
           />
           <KellyCriterion />
+          <EfficientFrontier
+            equityCurve={result.equity_curve}
+            buyHoldCurve={result.buy_hold_curve}
+            initialCapital={capital}
+          />
           <ScenarioTesting />
           <TradeLog trades={result.trades} />
         </div>
