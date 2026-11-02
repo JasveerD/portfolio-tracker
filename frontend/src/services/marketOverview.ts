@@ -551,6 +551,123 @@ export function removeFromWatchlist(ticker: string) {
   } catch {}
 }
 
+export interface AnalystRating {
+  buy: number;
+  hold: number;
+  sell: number;
+  strongBuy: number;
+  strongSell: number;
+  period: string;
+}
+
+export async function fetchAnalystRatings(
+  ticker: string
+): Promise<AnalystRating | null> {
+  const finnhubKey = getProviderKey("finnhub");
+  if (!finnhubKey) return null;
+  try {
+    const url = `${FINNHUB}/stock/recommendation?symbol=${ticker}&token=${finnhubKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data) || !data.length) return null;
+    const latest = data[0];
+    return {
+      buy: latest.buy || 0,
+      hold: latest.hold || 0,
+      sell: latest.sell || 0,
+      strongBuy: latest.strongBuy || 0,
+      strongSell: latest.strongSell || 0,
+      period: latest.period || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export interface InsiderTrade {
+  name: string;
+  share: number;
+  change: number;
+  transactionDate: string;
+  transactionCode: string;
+}
+
+export async function fetchInsiderTrades(
+  ticker: string
+): Promise<InsiderTrade[]> {
+  const finnhubKey = getProviderKey("finnhub");
+  if (!finnhubKey) return [];
+  try {
+    const url = `${FINNHUB}/stock/insider-transactions?symbol=${ticker}&token=${finnhubKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.data?.length) return [];
+    return data.data
+      .filter(
+        (t: { transactionCode: string }) =>
+          t.transactionCode === "P" || t.transactionCode === "S"
+      )
+      .slice(0, 10)
+      .map(
+        (t: {
+          name: string;
+          share: number;
+          change: number;
+          transactionDate: string;
+          transactionCode: string;
+        }) => ({
+          name: t.name,
+          share: t.share,
+          change: t.change,
+          transactionDate: t.transactionDate,
+          transactionCode: t.transactionCode,
+        })
+      );
+  } catch {
+    return [];
+  }
+}
+
+export interface StockMetrics {
+  pe: number | null;
+  eps: number | null;
+  marketCap: number | null;
+  week52High: number | null;
+  week52Low: number | null;
+  dividendYield: number | null;
+  beta: number | null;
+  revenueGrowth: number | null;
+}
+
+export async function fetchStockMetrics(
+  ticker: string
+): Promise<StockMetrics | null> {
+  const finnhubKey = getProviderKey("finnhub");
+  if (!finnhubKey) return null;
+  try {
+    const url = `${FINNHUB}/stock/metric?symbol=${ticker}&metric=all&token=${finnhubKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const m = data.metric;
+    if (!m) return null;
+    return {
+      pe: m.peNormalizedAnnual ?? m.peTTM ?? null,
+      eps: m.epsNormalizedAnnual ?? m.epsTTM ?? null,
+      marketCap: m.marketCapitalization ?? null,
+      week52High: m["52WeekHigh"] ?? null,
+      week52Low: m["52WeekLow"] ?? null,
+      dividendYield: m.dividendYieldIndicatedAnnual ?? null,
+      beta: m.beta ?? null,
+      revenueGrowth: m.revenueGrowthQuarterlyYoy ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchSectorHistory(
   ticker: string
 ): Promise<PricePoint[]> {
