@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   SECTORS,
   fetchTickerQuoteWithRetry,
@@ -10,9 +10,12 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface Props {
   startLoading?: boolean;
+  onDone?: () => void;
 }
 
-export default function SectorHeatmap({ startLoading = true }: Props) {
+export default function SectorHeatmap({ startLoading = true, onDone }: Props) {
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   const [sectors, setSectors] = useState<TickerQuote[]>(
     SECTORS.map((s) => ({
       ...s,
@@ -56,6 +59,7 @@ export default function SectorHeatmap({ startLoading = true }: Props) {
         }
         if (i < SECTORS.length - 1 && !cancelled && needsDelay()) await delay(8000);
       }
+      if (!cancelled) onDoneRef.current?.();
     }
 
     load();
