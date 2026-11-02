@@ -2,6 +2,7 @@ import { useState } from "react";
 import DrawdownChart from "../components/DrawdownChart";
 import EquityCurve from "../components/EquityCurve";
 import MetricsPanel from "../components/MetricsPanel";
+import MonteCarloVaR from "../components/MonteCarloVaR";
 import StrategyForm from "../components/StrategyForm";
 import TradeLog from "../components/TradeLog";
 import { runBacktest } from "../services/backtestEngine";
@@ -12,11 +13,13 @@ export default function Backtest() {
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [capital, setCapital] = useState(10000);
 
   const handleSubmit = async (req: BacktestRequest) => {
     setLoading(true);
     setError("");
     setResult(null);
+    setCapital(req.initial_capital);
     try {
       const prices = await fetchPriceHistory(
         req.ticker,
@@ -63,6 +66,10 @@ export default function Backtest() {
             buyHold={result.buy_hold_curve}
           />
           <DrawdownChart data={result.drawdown_curve} />
+          <MonteCarloVaR
+            equityCurve={result.equity_curve}
+            initialCapital={capital}
+          />
           <TradeLog trades={result.trades} />
         </div>
       )}
