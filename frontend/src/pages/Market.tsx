@@ -1,7 +1,11 @@
 import { useState } from "react";
 import MarketIndices from "../components/MarketIndices";
+import MarketMovers from "../components/MarketMovers";
 import NewsFeed from "../components/NewsFeed";
 import SectorHeatmap from "../components/SectorHeatmap";
+import TickerSearch from "../components/TickerSearch";
+import VixGauge from "../components/VixGauge";
+import Watchlist from "../components/Watchlist";
 import {
   getProvider,
   setProvider,
@@ -11,17 +15,24 @@ import {
   type Provider,
 } from "../services/marketOverview";
 
-const PROVIDERS: { value: Provider; label: string; description: string; link: string }[] = [
+const PROVIDERS: {
+  value: Provider;
+  label: string;
+  description: string;
+  link: string;
+}[] = [
   {
     value: "finnhub",
     label: "Finnhub",
-    description: "60 requests/min free — all data loads in ~15 seconds. Also provides market news.",
+    description:
+      "60 requests/min free — all data loads fast. Also provides market news.",
     link: "https://finnhub.io/register",
   },
   {
     value: "twelvedata",
     label: "Twelve Data",
-    description: "8 requests/min with demo key (no signup). 800/day with free key.",
+    description:
+      "8 requests/min with demo key (no signup). 800/day with free key.",
     link: "https://twelvedata.com/pricing",
   },
 ];
@@ -31,6 +42,7 @@ export default function Market() {
   const [provider, setProviderState] = useState<Provider>(() => getProvider());
   const [key, setKey] = useState(() => getProviderKey(provider));
   const [indicesDone, setIndicesDone] = useState(false);
+  const [sectorsDone, setSectorsDone] = useState(false);
 
   function handleProviderChange(p: Provider) {
     setProviderState(p);
@@ -49,7 +61,7 @@ export default function Market() {
   const currentProvider = PROVIDERS.find((p) => p.value === provider)!;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex items-start justify-between">
         <h2 className="text-sm font-semibold text-t-muted tracking-wider uppercase">
           Market Overview
@@ -105,7 +117,8 @@ export default function Market() {
                   ? "finnhub.io"
                   : "twelvedata.com"}
               </a>
-              {provider === "twelvedata" && " — or leave as 'demo' to use without signup"}
+              {provider === "twelvedata" &&
+                " — or leave as 'demo' to use without signup"}
             </p>
             <div className="flex gap-2">
               <input
@@ -133,17 +146,31 @@ export default function Market() {
 
       {slow && (
         <p className="text-[10px] text-t-accent">
-          Using demo API key — data loads one symbol at a time (~8s each).
-          Click "API SETTINGS" above to switch to Finnhub for faster loading.
+          Using demo API key — data loads one symbol at a time (~8s each). Click
+          "API SETTINGS" above to switch to Finnhub for faster loading.
         </p>
       )}
 
-      <MarketIndices onDone={() => setIndicesDone(true)} />
+      <TickerSearch />
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+        <VixGauge />
+        <div className="lg:col-span-4">
+          <MarketIndices onDone={() => setIndicesDone(true)} />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SectorHeatmap startLoading={slow ? indicesDone : true} />
-        <NewsFeed />
+        <SectorHeatmap
+          startLoading={slow ? indicesDone : true}
+          onDone={() => setSectorsDone(true)}
+        />
+        <MarketMovers startLoading={slow ? sectorsDone : indicesDone} />
       </div>
+
+      <Watchlist />
+
+      <NewsFeed />
     </div>
   );
 }
