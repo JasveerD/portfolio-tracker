@@ -4,10 +4,12 @@ import {
   fetchInsiderTrades,
   fetchStockMetrics,
   fetchSparklineData,
+  getProviderKey,
   type AnalystRating,
   type InsiderTrade,
   type StockMetrics,
 } from "../services/marketOverview";
+import TechnicalChart from "./TechnicalChart";
 
 interface Props {
   ticker: string;
@@ -26,7 +28,8 @@ export default function TickerDetail({ ticker }: Props) {
   const [metrics, setMetrics] = useState<StockMetrics | null>(null);
   const [sparkline, setSparkline] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"overview" | "insiders">("overview");
+  const [tab, setTab] = useState<"overview" | "technicals" | "insiders">("overview");
+  const hasFinnhub = !!getProviderKey("finnhub");
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +101,18 @@ export default function TickerDetail({ ticker }: Props) {
         >
           Overview
         </button>
+        {hasFinnhub && (
+          <button
+            onClick={() => setTab("technicals")}
+            className={`text-[10px] tracking-wider uppercase px-2 py-0.5 rounded ${
+              tab === "technicals"
+                ? "bg-t-accent-bg text-t-accent"
+                : "text-t-muted hover:text-t-text"
+            }`}
+          >
+            Technicals
+          </button>
+        )}
         {insiders.length > 0 && (
           <button
             onClick={() => setTab("insiders")}
@@ -237,6 +252,8 @@ export default function TickerDetail({ ticker }: Props) {
           )}
         </div>
       )}
+
+      {tab === "technicals" && <TechnicalChart ticker={ticker} />}
 
       {tab === "insiders" && insiders.length > 0 && (
         <div className="overflow-x-auto">
