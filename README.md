@@ -1,25 +1,28 @@
-# Portfolio Tracker
+# FishyTerminal
 
-A client-side stock portfolio tracker with a strategy backtesting engine. No backend required — runs entirely in the browser.
+Bloomberg-style portfolio tracker and strategy backtester. Runs entirely in the browser — no backend, no account required.
 
 **Live:** [jasveerd.github.io/portfolio-tracker](https://jasveerd.github.io/portfolio-tracker/)
 
 ## Features
 
-- **Portfolio Management** — Add/remove holdings with live prices, P&L tracking, and allocation donut chart
-- **Market Data** — Real-time prices and historical OHLCV data from Yahoo Finance
-- **Backtesting Engine** — Test 5 strategies (SMA Crossover, RSI, Bollinger Bands, MACD, Buy & Hold) with configurable parameters, equity curves, drawdown charts, and trade logs
-- **Dark/Light Mode** — Toggle with one click
+**Portfolio** — Track holdings with live prices, P&L, cost basis, and allocation breakdown.
 
-## Tech Stack
+**Backtesting** — Test 5 strategies (SMA Crossover, RSI, Bollinger Bands, MACD, Buy & Hold) with equity curves, drawdown charts, trade logs, Monte Carlo VaR, Kelly criterion, efficient frontier, and scenario testing.
 
-- React + TypeScript + Vite
-- TailwindCSS + Recharts
-- Yahoo Finance API (via CORS proxy)
-- localStorage for holdings persistence
-- GitHub Pages for hosting
+**Technical Analysis** — Bollinger Bands, RSI, MACD charts. Relative strength vs any benchmark, rolling performance vs SPY, and seasonality heatmaps.
 
-## Local Development
+**Market Overview** — Indices, commodities, global markets, sector heatmap, market movers, VIX gauge, pairs trading scanner, watchlist, and news feed.
+
+## Data Sources
+
+1. **Yahoo Finance** (primary) — Free, no API key, every ticker. Requires a CORS proxy (included Cloudflare Worker).
+2. **Finnhub** — 60 req/min free tier. Provides candles, quotes, news, and company metrics.
+3. **Twelve Data** — 800 req/day free tier. Works with `demo` key for AAPL/MSFT/AMZN/GOOGL/TSLA.
+
+Providers are configured in **MKT → API Settings**. Yahoo is tried first when a proxy URL is set.
+
+## Setup
 
 ```bash
 cd frontend
@@ -27,12 +30,38 @@ npm install
 npm run dev
 ```
 
-The app runs at `http://localhost:5173`.
+### Deploy the Yahoo Finance proxy
 
-## Backtest Strategies
+The `worker/` directory contains a Cloudflare Worker that proxies Yahoo Finance requests (adds CORS headers). Free tier = 100k requests/day.
 
-- **SMA Crossover** — Buy when short SMA crosses above long SMA, sell on cross below
-- **RSI** — Buy when RSI drops below oversold threshold, sell above overbought
-- **Bollinger Bands** — Buy at lower band, sell at upper band
-- **MACD** — Buy on bullish crossover, sell on bearish crossover
-- **Buy & Hold** — Baseline comparison
+```bash
+cd worker
+npm install
+npx wrangler login
+npx wrangler deploy
+```
+
+Paste the deployed URL (e.g. `https://yahoo-finance-proxy.jasveerd.workers.dev`) into **MKT → API Settings → Yahoo Finance Proxy**.
+
+## Tech Stack
+
+- React 19 + TypeScript + Vite
+- TailwindCSS + Recharts
+- Cloudflare Workers (Yahoo Finance proxy)
+- localStorage (holdings, settings) + sessionStorage (data cache)
+- GitHub Pages + GitHub Actions CI/CD
+
+## Project Structure
+
+```
+frontend/src/
+  components/
+    analysis/     Technical charts, relative strength, seasonality
+    backtest/     Strategy form, equity curve, risk metrics, Monte Carlo
+    market/       Indices, commodities, news, watchlist, sector heatmap
+    portfolio/    Holdings, allocation chart
+  pages/          Dashboard, Portfolio, Backtest, Market
+  services/       API clients, data fetching, storage
+  types.ts        Shared TypeScript interfaces
+worker/           Cloudflare Worker (Yahoo Finance CORS proxy)
+```
